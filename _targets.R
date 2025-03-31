@@ -10,12 +10,12 @@ fastverse_conflicts()
 
 # Set target options:
 tar_option_set(
-  packages = c("wbstats", "rvest", "countrycode"), # Packages that your targets need for their tasks.
+  packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass"), # Packages that your targets need for their tasks.
   format = "qs" # Optionally set the default storage format. qs is fast.
 )
 
 # Run the R scripts in the R/ folder with your custom functions:
-tar_source("code/fetch_countries.R")
+tar_source("code")
 
 # Replace the target list below with your own:
 list(
@@ -33,9 +33,12 @@ list(
   tar_target(
     name = osm_ctry, # Data is saved under data/OSM/raw
     command = download_geofabrik_countries(geo_ctry, income_groups, exclude = "HIC")
+  ),
+  
+  tar_target(
+    name = proc_osm_dir, # Data is saved under data/OSM/processed
+    command = proc_osm() 
   )
-  
-  
 )
 
 #  More on tar_option_set()

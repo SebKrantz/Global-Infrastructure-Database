@@ -46,7 +46,7 @@ get_geofabrik_countries <- function() {
   }, simplify = FALSE) |> 
     rowbind(idcol = "region", id.factor = FALSE) |>
     fmutate(iso3c = countrycode::countryname(country, "iso3c"), 
-                      iso3c = fcoalesce(iso3c, countrycode::countryname(tstrsplit(country, " ")[[1]], "iso3c")),
+                      iso3c = pfirst(iso3c, countrycode::countryname(tstrsplit(country, " ")[[1]], "iso3c")),
                       region = sub(".html", "", region), 
                       link = paste0("https://download.geofabrik.de/", link)) |>
     colorder(region, iso3c, country, link) |>
@@ -62,7 +62,7 @@ download_geofabrik_countries <- function(geo_ctry, income_groups, exclude = "HIC
   oldopt <- options(timeout = 10000) 
   on.exit(options(oldopt))
   
-  for (c in seq_len(nrow(ctry))) {
+  for (c in seq_row(ctry)) {
     Sys.sleep(1)
     country <- ss(ctry, c)
     message("Downloading ", country$country_geo, " data from ", country$link)
