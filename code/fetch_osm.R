@@ -70,7 +70,7 @@ download_geofabrik_countries <- function(geo_ctry, income_groups, exclude = "HIC
     if(c %% 10 == 0) Sys.sleep(10)
   }
   
-  if(length(list.files("data/OSM/raw")) != nrow(ctry)) {
+  if(length(list.files("data/OSM/raw")) < nrow(ctry)) {
     warning("Some files were not downloaded")
   }
   
