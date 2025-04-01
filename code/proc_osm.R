@@ -1,5 +1,5 @@
 
-proc_osm <- function(path = "data/OSM/raw") {
+proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
   
   files <- list.files(path, pattern = "osm.pbf", full.names = TRUE)
   
@@ -118,8 +118,8 @@ proc_osm <- function(path = "data/OSM/raw") {
     
     for (i in seq_along(int)) {
       
-      cat("\nReading Multipolygons Chunk", i, "\n")
       if(length(int) > 1) {
+        cat("\nReading Multipolygons Chunk", i, "\n")
         temp <- sf::st_read(file_gpkg, 
                         query = paste("SELECT * FROM multipolygons LIMIT 10000000 OFFSET", int[i])) 
         print(fnrow(temp))
@@ -203,4 +203,43 @@ proc_osm <- function(path = "data/OSM/raw") {
    
   }
   "data/OSM/processed"
+}
+
+combine_osm_proc <- function(proc_osm_dir = "data/OSM/processed") {
+  
+  files <- list.files(proc_osm_dir, pattern = ".qs", full.names = TRUE)
+  
+  if(length(files) == 0) {
+    stop("No files found in ", proc_osm_dir)
+  }
+  
+  points <- list()
+  lines <- list()
+  multipolygons <- list()
+  
+  for (file in files) {
+    
+    message("Reading: ", file)
+    obj <- qs::qread(file)
+    
+    if(grepl("-points", file)) {
+      points <- c(points, set_names(list(obj), file))
+    } else if(grepl("-lines", file)) {
+      lines <- c(lines, set_names(list(obj), file))
+    } else if(grepl("-multipolygons", file)) {
+      multipolygons <- c(multipolygons, set_names(list(obj), file))
+    }
+    
+  }
+  
+  points <- if(length(points) > 0) rowbind(points, idcol = "source", fill = TRUE) else NULL
+  qs::qsave(points, "data/OSM/points.qs"); rm(points); gc()
+  lines <- if(length(lines) > 0) lapply(t_list(lines), rowbind, idcol = "source", fill = TRUE) else NULL
+  qs::qsave(lines, "data/OSM/lines.qs"); rm(lines); gc()
+  multipolygons <- if(length(multipolygons) > 0) rowbind(multipolygons, idcol = "source", fill = TRUE) else NULL
+  qs::qsave(multipolygons, "data/OSM/multipolygons.qs"); rm(multipolygons); gc()
+  
+
+  list(points = "data/OSM/points.qs", lines = "data/OSM/lines.qs", multipolygons = "data/OSM/multipolygons.qs")
+  
 }
