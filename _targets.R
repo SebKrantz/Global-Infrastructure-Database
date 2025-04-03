@@ -10,7 +10,8 @@ fastverse_conflicts()
 
 # Set target options:
 tar_option_set(
-  packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass"), # Packages that your targets need for their tasks.
+  packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb"), # Packages that your targets need for their tasks.
+  trust_timestamps = TRUE, 
   format = "qs" # Optionally set the default storage format. qs is fast.
 )
 
@@ -31,14 +32,55 @@ list(
   ),
   
   tar_target(
-    name = osm_ctry, # Data is saved under data/OSM/raw
-    command = download_geofabrik_countries(geo_ctry, income_groups, exclude = "HIC")
+    name = inc_ctry, 
+    command = get_income_countries(geo_ctry, income_groups, exclude = "HIC")
   ),
   
   tar_target(
-    name = proc_osm_dir, # Data is saved under data/OSM/processed
-    command = proc_osm() 
+    name = osm_ctry, # Data is saved under data/OSM/raw
+    command = download_geofabrik_countries(inc_ctry), 
+    cue = tar_cue(mode = "never"), # Track file changes
+    format = "file"
+  ),
+  
+  tar_target(
+    name = osm_proc, # Data is saved under data/OSM/processed
+    command = proc_osm(osm_ctry), 
+    cue = tar_cue(mode = "never"), # Track file changes
+    format = "file"
+  ),
+  
+  tar_target(
+    name = combined_osm, # Data is saved under data/OSM/
+    command = combine_osm_proc(proc_osm_dir),
+    cue = tar_cue(mode = "never"), # Track file changes
+    format = "file"
+  ),
+  
+  tar_target(
+    name = overture_latest_release, # Latest overture release
+    command = get_overture_latest_release() 
+  ),
+  
+  tar_target(
+    name = overture_places, # Data is saved under data/overture/
+    command = download_overture_places(overture_latest_release, inc_ctry),
+    cue = tar_cue(mode = "never"), # Track file changes
+    format = "file"
+  ),
+  
+  tar_target(
+    name = foursquares_s3_paths,
+    command = get_foursquares_s3_paths()
+  ),
+  
+  tar_target(
+    name = foursquares_places, # Data is saved under data/foursquares/
+    command = download_foursquares_places(foursquares_s3_paths, inc_ctry),
+    cue = tar_cue(mode = "never"), # Track file changes
+    format = "file"
   )
+  
 )
 
 #  More on tar_option_set()
