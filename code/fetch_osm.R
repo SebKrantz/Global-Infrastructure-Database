@@ -53,11 +53,15 @@ get_geofabrik_countries <- function() {
     fsubset(!is.na(iso3c) & !fduplicated(iso3c))
 }
 
-
-download_geofabrik_countries <- function(geo_ctry, income_groups, exclude = "HIC") {
+get_income_countries <- function(geo_ctry, income_groups, exclude = "HIC") {
   
-  ctry <- join(geo_ctry, income_groups, on = "iso3c", how = "inner", suffix = c("_geo", "_wb"), validate = "1:1") |>
-          fsubset(!income_level_iso3c %in% exclude)
+  join(geo_ctry, income_groups, on = "iso3c", how = "inner", suffix = c("_geo", "_wb"), validate = "1:1") |>
+    fsubset(!income_level_iso3c %in% exclude)
+  
+}
+  
+
+download_geofabrik_countries <- function(ctry) {
   
   oldopt <- options(timeout = 10000) 
   on.exit(options(oldopt))
@@ -74,5 +78,5 @@ download_geofabrik_countries <- function(geo_ctry, income_groups, exclude = "HIC
     warning("Some files were not downloaded")
   }
   
-  ctry
+  paste0("data/OSM/raw/", basename(ctry$link))
 }
