@@ -79,6 +79,20 @@ list(
     command = download_foursquares_places(foursquares_s3_paths, inc_ctry),
     cue = tar_cue(mode = "never"), # Track file changes
     format = "file"
+  ), 
+  
+  tar_target(
+    name = alltheplaces_zip, # Data is saved under data/combined/
+    command = {system("python3 code/fetch_alltheplaces.py"); "data/alltheplaces/output.zip"},
+    cue = tar_cue(mode = "never"), # Track file changes
+    format = "file"
+  ),
+  
+  tar_target(
+    name = alltheplaces_csv, # Data is saved under data/combined/
+    command = {system("python3 code/proc_alltheplaces.py"); "data/alltheplaces/alltheplaces.csv"},
+    cue = tar_cue(mode = "never"), # Track file changes
+    format = "file"
   )
   
 )
