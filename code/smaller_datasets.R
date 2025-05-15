@@ -20,6 +20,34 @@ load_GIP <- function() {
   
 }
 
+# https://globalenergymonitor.org/projects/global-iron-and-steel-tracker/download-data/
+# Also load more GEM data...
+load_GSP <- function() {
+  
+}
+
+# Open Zone Map: https://www.openzonemap.com/map
+load_OZM <- function() {
+  
+}
+
+# World Port Index
+# https://msi.nga.mil/Publications/WPI
+fetch_WPI <- function() {
+  
+  download.file("https://msi.nga.mil/api/publications/download?type=view&key=16920959/SFH00000/UpdatedPub150.csv", 
+                destfile = "data/WPI/WPI.csv", method = "curl")
+  
+}
+
+load_WPI <- function() {
+  
+  fread("data/WPI/WPI.csv") |> 
+    janitor::clean_names() |> 
+    get_vars(varying)
+  
+}
+
 # https://gee-community-catalog.org/projects/tzero/
 load_solar_assets <- function() {
   
