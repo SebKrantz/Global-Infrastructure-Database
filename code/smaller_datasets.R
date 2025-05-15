@@ -91,6 +91,27 @@ load_OOKLA <- function() {
   list(fixed = qs::qread("data/OOKLA/OOKLA_fixed.qs"), 
        mobile = qs::qread("data/OOKLA/OOKLA_mobile.qs"))
 }
+
+
+# Spatial Finance Initiative (Global Data on Certain Productive Assets)
+# https://www.cgfi.ac.uk/spatial-finance-initiative/geoasset-project/geoasset-databases/
+load_SFI <- function() {
+  
+  list(
+    cement = readxl::read_xlsx("data/SFI/SFI-Global-Cement-Database-July-2021.xlsx", 
+                               sheet = "SFI_ALD_Cement_Database"),
+    paper_pulp = readxl::read_xlsx("data/SFI/SFI_ALD_Pulp_Paper_Database_October_2024.xlsx", 
+                                   sheet = "SFI_Pulp_Paper_Database"),
+    steel = readxl::read_xlsx("data/SFI/SFI-Global-Steel-Database-July-2021.xlsx", 
+                              sheet = "SFI_ALD_Steel_Database"),
+    ethylene = readxl::read_xlsx("data/SFI/SFI_ALD_Global_Ethylene_Database_October_2024.xlsx", 
+                                 sheet = "Global_Ethylene_Production"),
+    beef = readxl::read_xlsx("data/SFI/SFI_ALD_Beef_Abattoirs_Top5_Dec_2022.xlsx", 
+                             sheet = "SFI_ALD_Beef_Abattoir_Top5")
+  ) |> 
+    lapply(function(x) get_vars(x, varying(x)) |> frename(tolower))
+  
+}
  
 
 # https://gee-community-catalog.org/projects/energy_farms/
