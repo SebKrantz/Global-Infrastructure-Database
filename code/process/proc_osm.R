@@ -31,7 +31,7 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
     gc()
 
     # Classifying
-    points_classification <- osmclass::osm_classify(points, osmclass::osm_point_polygon_class)
+    points_classification <- osmclass::osm_classify(points, osmclass::osm_point_polygon_class_det)
 
     # Adding classification, removing unclassificed, and some final transformations
     points %<>% ss(points_classification$classified) %>%
@@ -115,6 +115,7 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
     N <- layers$features[layers$name == "multipolygons"]
     int <- seq(0L, N, 1e7L)
     multipolygons <- vector("list", length(int))
+    # multipolygons_ncl <- vector("list", length(int))
 
     for (i in seq_along(int)) {
 
@@ -136,11 +137,12 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
                 is.na(natural) & is.na(geological) & !(is.na(osm_id) & is.na(osm_way_id)))
 
       # Classifying
-      temp_class <- osmclass::osm_classify(temp, osmclass::osm_point_polygon_class)
+      temp_class <- osmclass::osm_classify(temp, osmclass::osm_point_polygon_class_det)
       cl <- which(temp_class$classified)
       # # Classification conflicts
       # temp_class |> ss(cl, check = FALSE) |>
       #   fsubset(!is.na(alt_cats) & main_cat != alt_cats) |> fcount() |> roworder(-N) # |> View()
+      # multipolygons_ncl[[i]] <- ss(atomic_elem(temp), -cl) |> qDT()
       temp %<>% ss(cl, check = FALSE)
       temp_class %<>% ss(cl, 2:fncol(temp_class), check = FALSE)
 
