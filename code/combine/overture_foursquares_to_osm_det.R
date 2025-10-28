@@ -409,6 +409,7 @@ overture_foursquares_to_osm_det <- list(
     # amenity = c("bicycle_parking", "bicycle_repair_station", "bicycle_rental", "bicycle_wash"),
     # shop = "bicycle",
     # highway = "cycleway"
+    foursquares = list(category_name = "Bicycle Store")
   ),
   public_transport = list(
     # public_transport = "!no", 
@@ -530,6 +531,8 @@ overture_foursquares_to_osm_det <- list(
     # man_made = "wastewater_plant",
     # waterway = c("sanitary_dump_station", "wastewater"),
     # landuse = "landfill"
+    foursquares = list(category_name = c("Waste Management Service", "Recycling Facility", 
+                                         "Water Treatment Service"))
   ),
   commercial = list(
     # office = c("company", "yes", "commercial", "office", "building", "private"),
@@ -567,8 +570,7 @@ overture_foursquares_to_osm_det <- list(
     # ),
     # building = c("digester", "service", "water_tower"),
     # landuse = "reservoir"
-    foursquares = list(category_name = c("Utility Company", "Recycling Facility", "Waste Management Service",
-                                         "Water Treatment Service", "Reservoir", "Well"))
+    foursquares = list(category_name = c("Utility Company", "Reservoir", "Well"))
   ),
   craft = list(
     # craft = ""
