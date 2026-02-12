@@ -1,10 +1,11 @@
 
 
 fetch_OCID <- function() {
-  
-  download.file("https://opencellid.org/ocid/downloads?token=pk.00ef6e91c8e916e61168597788c6e6e8&type=full&file=cell_towers.csv.gz", 
+
+  download.file("https://opencellid.org/ocid/downloads?token=pk.00ef6e91c8e916e61168597788c6e6e8&type=full&file=cell_towers.csv.gz",
                 destfile = "data/opencellid/cell_towers.csv.gz", method = "curl")
-  
+
+  "data/opencellid/cell_towers.csv.gz"
 }
 
 load_OCID <- function() {
@@ -34,10 +35,11 @@ load_OZM <- function() {
 # World Port Index
 # https://msi.nga.mil/Publications/WPI
 fetch_WPI <- function() {
-  
-  download.file("https://msi.nga.mil/api/publications/download?type=view&key=16920959/SFH00000/UpdatedPub150.csv", 
+
+  download.file("https://msi.nga.mil/api/publications/download?type=view&key=16920959/SFH00000/UpdatedPub150.csv",
                 destfile = "data/WPI/WPI.csv", method = "curl")
-  
+
+  "data/WPI/WPI.csv"
 }
 
 load_WPI <- function() {
@@ -99,19 +101,20 @@ load_GRIP <- function() {
 # https://www.speedtest.net/insights/blog/best-ookla-open-data-projects-2021/
 # R package: remotes::install_github("teamookla/ooklaOpenDataR")
 fetch_OOKLA <- function() {
-  
-  year <- zoo::as.yearqtr(Sys.Date()) - 0.25 
+
+  year <- zoo::as.yearqtr(Sys.Date()) - 0.25
   quarter <- as.integer(substr(year, 7, 7))
   year <- as.integer(substr(year, 1, 4))
-  
+
   fixed <- ooklaOpenDataR::get_performance_tiles(service = "fixed", year = year, quarter = quarter)
   fixed$tile <- NULL
   qs::qsave(fixed, file = "data/OOKLA/OOKLA_fixed.qs")
-  
+
   mobile <- ooklaOpenDataR::get_performance_tiles(service = "mobile", year = year, quarter = quarter)
   mobile$tile <- NULL
   qs::qsave(mobile, file = "data/OOKLA/OOKLA_mobile.qs")
-  
+
+  c("data/OOKLA/OOKLA_fixed.qs", "data/OOKLA/OOKLA_mobile.qs")
 }
 
 load_OOKLA <- function() {
