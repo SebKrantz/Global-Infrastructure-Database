@@ -36,7 +36,9 @@ overture_foursquares_to_osm_det <- list(
     #   "hotel_apartment", "luxury_lodge", "holiday_home"
     # ),
     # building = "hotel"
-    overture = list(V1 = "accommodation"),
+    overture = list(V1 = "accommodation",
+                    category = c("country_house", "houseboat", "ryokan",
+                                 "self_catering_accommodation", "vacation_rental_agents")),
     foursquares = list(category_name = "Mountain Hut",
       level2_category_name = "Lodging")
   ),
@@ -108,7 +110,11 @@ overture_foursquares_to_osm_det <- list(
     # man_made = c("tailings_pond", "adit", "petroleum_well", "mineshaft"),
     # industrial = c("mine", "salt_ponds", "salt_pond", "hydrocarbon_field"),
     # landuse = c("quarry", "salt_pond")
-    overture = list(category = c("mining", "b2b_energy_mining"))
+    overture = list(category = c("mining", "b2b_energy_mining",
+                                 "coal_and_coke", "quarries", "oil_and_gas",
+                                 "b2b_oil_and_gas_extraction_and_services",
+                                 "oil_and_gas_exploration_and_development",
+                                 "oil_and_gas_field_equipment_and_services", "oil_refiners"))
   ),
   farming = list(
     # place = "farm",
@@ -121,14 +127,16 @@ overture_foursquares_to_osm_det <- list(
     #   "farmland", "farmyard", "orchard", "vineyard", "aquaculture",
     #   "greenhouse_horticulture", "plant_nursery"
     # )
-    overture = list(V2 = c("b2b_agriculture_and_food", "farm_equipment_repair_service"), 
-                    V3 = c("agricultural_production", "agricultural_seed_store", "farming_equipment_store", "poultry_farm")),
+    overture = list(V2 = c("b2b_agriculture_and_food", "farm_equipment_repair_service"),
+                    V3 = c("agricultural_production", "agricultural_seed_store", "farming_equipment_store", "poultry_farm"),
+                    category = c("farm", "attraction_farm", "orchard", "pick_your_own_farm", "ranch")),
     foursquares = list(category_name = c("Farm", "Agriculture and Forestry Service", "Stable", "Vineyard"))
   ),
   museums = list(
     # amenity = "planetarium",
     # tourism = c("museum", "gallery", "art_gallery", "aquarium", "monument", "gallery_museum")
-    overture = list(V2 = c("museum", "art_gallery", "planetarium")),
+    overture = list(V2 = c("museum", "art_gallery", "planetarium"),
+                    category = c("aquarium", "sculpture_statue", "street_art", "architecture")),
     foursquares = list(category_name = c("Exhibit", "Fair", "Aquarium"),
                        level2_category_name = c("Museum", "Art Gallery", "Public Art", "Planetarium"))
   ),
@@ -142,12 +150,17 @@ overture_foursquares_to_osm_det <- list(
     #   "bird_sanctuary"
     # ),
     # landuse = "recreation_ground"
-    overture = list(V2 = "park",
-                    category = c("botanical_garden", "campground",  
-                                 "national_park", "nature_reserve", "park", 
+    overture = list(V1 = "structure_and_geography",
+                    V2 = "park",
+                    category = c("botanical_garden", "campground",
+                                 "national_park", "nature_reserve", "park",
                                  "petting_zoo", "playground", "marina",
-                                 "wildlife_sanctuary", "zoo", "water_park", # water park ??
-                                 "natural_hot_springs")),
+                                 "wildlife_sanctuary", "zoo", "water_park",
+                                 "natural_hot_springs",
+                                 "backpacking_area", "canyon", "cave", "crater", "hot_springs",
+                                 "lake", "lookout", "sand_dune", "skyline", "stargazing_area",
+                                 "trail", "waterfall", "beach_combing_area",
+                                 "desert", "forest", "geologic_formation", "island", "mountain")),
     foursquares = list(category_name = c("Summer Camp", "Trailer Park", "Campground", "RV Park", "Rest Area",
                                          "Bay", "Bathing Area", "Cave", # Tours and Sightseeing?
                                          "Island", "Lake", "Hill", "Mountain", "Forest", "Field"), # Farming?
@@ -181,7 +194,14 @@ overture_foursquares_to_osm_det <- list(
                                  "hiking_trail", "horse_riding", "horseback_riding_service", "horse_boarding",
                                  "kiteboarding", "mountain_bike_trails", "rock_climbing_spot", "flyboarding_center", "jet_skis_rental",
                                  "scuba_diving_center", "scuba_diving_instruction", "hang_gliding_center",
-                                 "sky_diving", "snorkeling", "surfing", "ski_and_snowboard_school", "bike_rentals", "boat_rental_and_training")),
+                                 "sky_diving", "snorkeling", "surfing", "ski_and_snowboard_school", "bike_rentals", "boat_rental_and_training",
+                             "atv_rentals_and_tours", "boating_places", "sailing_area", "bobsledding_field",
+                             "bungee_jumping_center", "challenge_courses_center", "cliff_jumping_center",
+                             "climbing_service", "flyboarding_rental", "high_gliding_center",
+                             "hot_air_balloons_tour", "kiteboarding_instruction", "mountain_bike_parks",
+                             "parasailing_ride_service", "rafting_kayaking_area", "sledding_rental",
+                             "snorkeling_equipment_rental", "snowboarding_center", "surfboard_rental",
+                             "windsurfing_center", "ziplining_center", "paddleboard_rental", "ski_area")),
     foursquares = list(category_name = c("Sailing Club", "Dive Spot", "Scuba Diving Instructor", "Rafting Spot", "Water Sports",
                                          "Canoe and Kayak Rental", "Surfing", "Rafting Outfitter", "Skydiving Center", # Stores??
                                          "Skydiving Drop Zone", "Surf Spot", "Surf Store", "Disc Golf", "Disc Golf Course", # Disc Golf could be sports??
@@ -193,7 +213,8 @@ overture_foursquares_to_osm_det <- list(
     # leisure = "bandstand"
     overture = list(category = c("arts_and_entertainment", "cinema", "circus", "cultural_center", "choir", "opera_and_ballet",
       "jazz_and_blues", "music_venue", "performing_arts", "theatre", "laser_tag", "marching_band", "comedy_club", "eatertainment",
-      "theatrical_productions", "topic_concert_venue", "theaters_and_performance_venues", "drive_in_theater"), 
+      "theatrical_productions", "topic_concert_venue", "theaters_and_performance_venues", "drive_in_theater",
+      "dinner_theater", "musical_band_orchestras_and_symphonies", "paint_and_sip", "studio_taping", "ticket_sales"),
       V2 = c("cinema", "festival")),
     foursquares = list(category_name = c("Cultural Center", "Carnival", "Circus", "Escape Room", "General Entertainment"), # public_service?
                        level3_category_name = c("Festival", "Music Festival", "Parade"),
@@ -207,7 +228,9 @@ overture_foursquares_to_osm_det <- list(
     #   "swingerclub"
     # ),
     # leisure = "dance"
-    overture = list(category = c("adult_entertainment", "casino", "comedy_club", "karaoke", "dance_club", "lounge", "salsa_club")),
+    overture = list(category = c("adult_entertainment", "casino", "comedy_club", "karaoke", "dance_club", "lounge", "salsa_club",
+                                 "erotic_massage", "strip_club", "striptease_dancer", "bar_crawl", "club_crawl",
+                                 "country_dance_hall", "cabaret")),
     foursquares = list(level1_category_name = "Nightlife Spot",
                        level2_category_name = c("Dance Hall", "Strip Club", "Karaoke Box", "Country Dance Club", "Party Center", 
                                                 "Salsa Club", "Night Club", "Casino", "Comedy Club")) # Comedy Club not performing arts?
@@ -221,8 +244,10 @@ overture_foursquares_to_osm_det <- list(
     #   "snooker", "10pin_billiards", "table_soccer_darts_billiards",
     #   "billiards_snooker_soccer"
     # )
-    overture = list(category = c("amusement_park", "arcade", "betting_center", "bingo_hall", "bowling_alley", 
-                                 "pool_billiards", "go_kart_club", "miniature_golf_course", "paintball")),
+    overture = list(category = c("amusement_park", "arcade", "betting_center", "bingo_hall", "bowling_alley",
+                                 "pool_billiards", "go_kart_club", "miniature_golf_course", "paintball",
+                                 "bookmakers", "carousel", "escape_rooms", "indoor_playcenter",
+                                 "virtual_reality_center", "go_kart_track", "haunted_house", "axe_throwing")),
     foursquares = list(category_name = c("Gaming Cafe", "VR Cafe", "Arcade", "Bingo Center", "Betting Shop", "Bowling Alley", 
                                          "Pool Hall", "Mini Golf Course", "Go Kart Track", "Laser Tag Center", "Pachinko Parlor"), 
                        level2_category_name = "Amusement Park")
@@ -231,7 +256,9 @@ overture_foursquares_to_osm_det <- list(
     # tourism = c("!no", "!picnic_site"),
     # shop = "travel_agency",
     # office = c("travel_agency", "tourism", "travel_agent", "guide")
-    overture = list(V2 = c("tours", "travel_services", "agriturismo")), 
+    overture = list(V1 = "attractions_and_activities",
+                    V2 = c("tours", "travel_services", "agriturismo"),
+                    category = c("travel", "rest_stop")),
     foursquares = list(category_name = c("Scenic Lookout", "Sculpture Garden"),
       level2_category_name = c("Tourist Information and Service", "Travel Agency", "General Travel", "Cruise", 
                                "Hot Air Balloon Tour Agency"))
@@ -245,7 +272,10 @@ overture_foursquares_to_osm_det <- list(
     # office = "sports",
     # shop = "sports",
     # sport = "!no"
-    overture = list(V1 = "active_life"),
+    overture = list(V1 = "active_life",
+                    category = c("stadium_arena", "baseball_stadium", "basketball_stadium", "cricket_ground",
+                                 "football_stadium", "hockey_arena", "rugby_stadium", "soccer_stadium",
+                                 "tennis_stadium", "track_stadium", "rodeo", "country_club")),
     foursquares = list(category_name = "Sporting Event",
                        level1_category_name = "Sports and Recreation", # Sensible?
                        level2_category_name = "Stadium")
@@ -267,9 +297,11 @@ overture_foursquares_to_osm_det <- list(
     # ),
     # building = "government",
     # landuse = "institutional"
-    overture = list(category = c("law_enforcement", "central_government_office", "federal_government_offices", 
-                                 "local_and_state_government_offices", "embassy", "chambers_of_commerce", 
-                                 "national_security_services", "political_party_office"), 
+    overture = list(category = c("law_enforcement", "central_government_office", "federal_government_offices",
+                                 "local_and_state_government_offices", "embassy", "chambers_of_commerce",
+                                 "national_security_services", "political_party_office",
+                                 "social_club", "fraternal_organization", "veterans_organization",
+                                 "domestic_business_and_trade_organizations"),
                     V2 = "organization"),
     foursquares = list(category_name = "Government Lobbyist",
       level2_category_name = c("Government Building", "Organization")) # Match after public_service (everything else)
@@ -306,6 +338,7 @@ overture_foursquares_to_osm_det <- list(
     #   "private_investigator"
     # )
     overture = list(
+      V1 = "professional_services",
       V2 = c("lawyer", "legal_services", "notary_public", "private_investigation", "genealogists",
              "patent_law", "mediator", "tenant_and_eviction_law",
              "it_service_and_computer_repair", "software_development",
@@ -364,6 +397,7 @@ overture_foursquares_to_osm_det <- list(
     # ),
     # shop = c("dry_cleaning", "laundry", "funeral_directors")
     overture = list(
+      V1 = "home_service",
       V2 = c("child_care_and_day_care", "cleaning_services", "laundry_services", "event_planning",
              "funeral_services_and_cemeteries", "nanny_services", "pest_control_service",
              "security_services", "appliance_repair_service", "furniture_repair",
@@ -393,7 +427,9 @@ overture_foursquares_to_osm_det <- list(
     # ),
     # office = "depot_de_boisson"
     overture = list(V2 = "storage_facility",
-                    category = c("b2b_storage_and_warehouses", "automotive_storage_facility")),
+                    category = c("b2b_storage_and_warehouses", "automotive_storage_facility",
+                                 "warehouse_rental_services_and_yards", "warehouses",
+                                 "business_records_storage_and_management")),
     foursquares = list(category_name = c("Storage Facility", "Distribution Center"))
   ),
   communications_network = list(
@@ -442,7 +478,7 @@ overture_foursquares_to_osm_det <- list(
              "automotive_parts_and_accessories", "gas_station", "electric_vehicle_charging_station",
              "truck_stop", "automobile_leasing", "automotive_repair"),
       category = c("parking", "department_of_motor_vehicles", "rv_park", "mobile_home_park",
-                   "atv_recreation_park")),
+                   "atv_recreation_park", "motorsport_vehicle_repair", "automotive")),
     foursquares = list(category_name = c("Auto Workshop", "Automotive Shop", "Electric Vehicle Charging Station",
                                          "Fuel Station", "Parking", "Rental Car Location"), # Transport service?
       level2_category_name = c("Automotive Retail", "Automotive Service"))
@@ -505,7 +541,9 @@ overture_foursquares_to_osm_det <- list(
                                  "vehicle_shipping", "pipeline_transportation",
                                  "courier_and_delivery_services", "bus_rentals",
                                  "limo_services", "taxi_service", "ride_sharing",
-                                 "aircraft_dealer", "aircraft_repair", "aircraft_parts_and_supplies")),
+                                 "aircraft_dealer", "aircraft_repair", "aircraft_parts_and_supplies",
+                                 "avionics_shop", "distribution_services", "freight_forwarding_agency",
+                                 "airline_ticket_agency", "bus_ticket_agency", "railway_ticket_agent")),
     foursquares = list(category_name = c("Shipping, Freight, and Material Transportation Service",
                                          "Airport Service", "Airport Lounge", "Travel Lounge"),
                        level2_category_name = "Transportation Service",
@@ -516,7 +554,8 @@ overture_foursquares_to_osm_det <- list(
     # man_made = c("kiln", "works"),
     # building = c("industrial", "manufacture"),
     # landuse = "industrial"
-    overture = list(V2 = c("commercial_industrial", "business_manufacturing_and_supply",
+    overture = list(V1 = "business_to_business",
+                    V2 = c("commercial_industrial", "business_manufacturing_and_supply",
                             "auto_company", "motorcycle_manufacturer"),
                     category = c("industrial_company", "b2b_medical_support_services")),
     foursquares = list(category_name = c("Factory", "Manufacturer", "Chemicals and Gasses Manufacturer", # Craft?
@@ -585,7 +624,8 @@ overture_foursquares_to_osm_det <- list(
     # landuse = c("religious", "cemetery"),
     # religion = c("!no", "!none"),
     # denomination = ""
-    overture = list(V1 = "religious_organization"),
+    overture = list(V1 = "religious_organization",
+                    category = c("supernatural_reading", "astrologer", "mystic", "psychic", "psychic_medium")),
     foursquares = list(category_name = "Cemetery",
       level2_category_name = c("Spiritual Center", "Psychic and Astrologer"))
   ),
@@ -595,7 +635,7 @@ overture_foursquares_to_osm_det <- list(
     # landuse = "construction",
     # construction = "!no"
     overture = list(V2 = c("construction_services", "contractor", "carpenter", "electrician",
-                            "plumbing", "roofing", "tiling", "painting", "landscaping",
+                            "plumbing", "tiling", "painting", "landscaping",
                             "windows_installation", "masonry_concrete", "well_drilling",
                             "ceiling_and_roofing_repair_and_service", "damage_restoration",
                             "excavation_service", "fence_and_gate_sales_service",
@@ -604,7 +644,7 @@ overture_foursquares_to_osm_det <- list(
                             "siding", "stucco_services", "waterproofing",
                             "drywall_services", "foundation_repair", "demolition_service",
                             "plasterer"),
-                    V3 = c("building_supply_store", "lumber_store",
+                    V3 = c("building_supply_store",
                             "do_it_yourself_store"))
   ),
   waste = list(
@@ -670,7 +710,7 @@ overture_foursquares_to_osm_det <- list(
     overture = list(V2 = c("sewing_and_alterations", "key_and_locksmith", "goldsmith", "gunsmith",
                             "shoe_repair", "calligraphy", "engraving", "bookbinding",
                             "knife_sharpening", "watch_repair_service"),
-                    category = c("chamber_of_handicraft", "glass_blowing")),
+                    category = c("chamber_of_handicraft", "glass_blowing", "makerspace")),
     foursquares = list(category_name = c("Locksmith", "Tailor", "Welding Service", # "Welding Service" = business_services ?
                                          "Cidery", "Winery", "Distillery", "Meadery"))
                                          
