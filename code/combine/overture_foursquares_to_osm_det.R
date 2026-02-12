@@ -82,8 +82,8 @@ overture_foursquares_to_osm_det <- list(
     # amenity = c("veterinary", "dog_toilet"), 
     # leisure = "dog_park"
     overture = list(V1 = "pets", V3 = c("pet_store", "dog_park")),
-    foursquares = list(category_name = "Animal Shelter",
-      level2_category_name = c("Pet Service", "Pet Supplies Store", "Veterinarian", "Dog Park")) # Needs to be before health_other
+    foursquares = list(category_name = c("Animal Shelter", "Dog Park"),
+      level2_category_name = c("Pet Service", "Pet Supplies Store", "Veterinarian")) # Needs to be before health_other
   ),
   education_other = list(
     # amenity = c(
@@ -130,7 +130,7 @@ overture_foursquares_to_osm_det <- list(
     overture = list(V2 = c("b2b_agriculture_and_food", "farm_equipment_repair_service"),
                     V3 = c("agricultural_production", "agricultural_seed_store", "farming_equipment_store", "poultry_farm"),
                     category = c("farm", "attraction_farm", "orchard", "pick_your_own_farm", "ranch")),
-    foursquares = list(category_name = c("Farm", "Agriculture and Forestry Service", "Stable", "Vineyard"))
+    foursquares = list(category_name = c("Farm", "Agriculture and Forestry Service", "Stable"))
   ),
   museums = list(
     # amenity = "planetarium",
@@ -172,8 +172,8 @@ overture_foursquares_to_osm_det <- list(
     # leisure = c("beach_resort", "resort"),
     # tourism = c("resort", "beach", "spa_resort", "holiday_resort")
     overture = list(category = c("beach", "beach_resort", "resort", "ski_resort")),
-    foursquares = list(category_name = c("Ski Resort and Area", "Resort", "Beach", "Nudist Beach", "Country Club", 
-                                         "Ski Chalet", "Ski Lodge")) # Resort also in Lodging (= accommodation)
+    foursquares = list(category_name = c("Ski Resort and Area", "Country Club",
+                                         "Ski Chalet", "Ski Lodge"))
   ),
   outdoor_activities = list(
     # leisure = c("swimming_area", "fishing"),
@@ -216,7 +216,7 @@ overture_foursquares_to_osm_det <- list(
       "theatrical_productions", "topic_concert_venue", "theaters_and_performance_venues", "drive_in_theater",
       "dinner_theater", "musical_band_orchestras_and_symphonies", "paint_and_sip", "studio_taping", "ticket_sales"),
       V2 = c("cinema", "festival")),
-    foursquares = list(category_name = c("Cultural Center", "Carnival", "Circus", "Escape Room", "General Entertainment"), # public_service?
+    foursquares = list(category_name = c("Cultural Center", "Carnival", "Circus", "Escape Room", "General Entertainment", "Arts and Entertainment"), # public_service?
                        level3_category_name = c("Festival", "Music Festival", "Parade"),
                        level2_category_name = c("Performing Arts Venue", "Movie Theater", "Entertainment Event"))
                        # Arts and Entertainment - anything else?
@@ -276,7 +276,7 @@ overture_foursquares_to_osm_det <- list(
                     category = c("stadium_arena", "baseball_stadium", "basketball_stadium", "cricket_ground",
                                  "football_stadium", "hockey_arena", "rugby_stadium", "soccer_stadium",
                                  "tennis_stadium", "track_stadium", "rodeo", "country_club")),
-    foursquares = list(category_name = "Sporting Event",
+    foursquares = list(category_name = c("Sporting Event", "Roller Rink"),
                        level1_category_name = "Sports and Recreation", # Sensible?
                        level2_category_name = "Stadium")
   ),
@@ -348,8 +348,7 @@ overture_foursquares_to_osm_det <- list(
              "bookkeeper", "video_film_production", "3d_printing_service", "e_commerce_service",
              "billing_services", "payroll_services", "environmental_testing",
              "b2b_science_and_technology", "business_consulting")),
-    foursquares = list(category_name = c("Agriculture and Forestry Service", 
-                                         "Appraiser", "Architecture Firm", "Art Restoration Service", 
+    foursquares = list(category_name = c("Appraiser", "Architecture Firm", "Art Restoration Service",
                                          "Art Studio", "Audiovisual Service", "Career Counselor",
                                          "Computer Repair Service", "Construction", "Creative Service",
                                          "Design Studio", "Engineer", "Film Studio", "Geological Service",
@@ -456,7 +455,7 @@ overture_foursquares_to_osm_det <- list(
                     category = c("telecommunications_company", "tower_communication_service",
                                  "internet_cafe")),
     foursquares = list(category_name = c("Media Agency", "Mobile Company", "Radio Station", "Recording Studio",
-                                         "TV Station", "Telecommunication Service", "Internet Cafe", "Lighthouse"))
+                                         "TV Station", "Telecommunication Service", "Internet Cafe"))
   ),
   automotive = list(
     # craft = c(
@@ -559,7 +558,7 @@ overture_foursquares_to_osm_det <- list(
                             "auto_company", "motorcycle_manufacturer"),
                     category = c("industrial_company", "b2b_medical_support_services")),
     foursquares = list(category_name = c("Factory", "Manufacturer", "Chemicals and Gasses Manufacturer", # Craft?
-                                         "Industrial Estate", "Brewery"))
+                                         "Industrial Estate"))
   ),
   wholesale = list(
     # office = c("pharmaceutical_products_wholesaler", "office_supplies"),
@@ -711,8 +710,7 @@ overture_foursquares_to_osm_det <- list(
                             "shoe_repair", "calligraphy", "engraving", "bookbinding",
                             "knife_sharpening", "watch_repair_service"),
                     category = c("chamber_of_handicraft", "glass_blowing", "makerspace")),
-    foursquares = list(category_name = c("Locksmith", "Tailor", "Welding Service", # "Welding Service" = business_services ?
-                                         "Cidery", "Winery", "Distillery", "Meadery"))
+    foursquares = list(category_name = c("Locksmith", "Tailor", "Welding Service")) # "Welding Service" = business_services ?
                                          
   ),
   office_other = list(
