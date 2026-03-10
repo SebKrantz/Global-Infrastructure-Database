@@ -1,9 +1,15 @@
 
 get_overture_latest_release <- function() {
   
-  latest <- rvest::read_html("https://docs.overturemaps.org/release/latest/") |>
-    rvest::html_element("h1") |>
-    rvest::html_text(trim = TRUE)
+  # latest <- rvest::read_html("https://docs.overturemaps.org/getting-data/") |>
+  #   rvest::html_element("h1") |>
+  #   rvest::html_text(trim = TRUE)
+
+  stac <- httr::GET("https://stac.overturemaps.org/catalog.json")
+  stac_json <- httr::content(stac, as = "text", encoding = "UTF-8")
+  stac_data <- jsonlite::fromJSON(stac_json)
+  latest <- stac_data$latest
+  
   
   if(!grepl("[0-9]+[-][0-9]+[-][0-9]+\\.[0-9]+", latest)) {
     stop("Could not find the latest overture release version.")
@@ -34,6 +40,7 @@ download_overture_places <- function(latest, inc_ctry) {
   # See number of rows
   # DBI::dbGetQuery(con, sprintf("select count(*) from read_parquet('%s') limit 1", places_url))
   # DBI::dbGetQuery(con, sprintf("select addresses[1].country as country, count(*) as N from read_parquet('%s') group by country order by N desc", places_url))
+  # 72444739
   
   # Exclude countries
   excl_ctry <- c(na_rm(countrycode::codelist$iso2c[!countrycode::codelist$iso3c %in% inc_ctry$iso3c]), "usa")
