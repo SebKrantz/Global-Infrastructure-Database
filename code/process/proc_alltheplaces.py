@@ -103,8 +103,8 @@ import pandas as pd
 data = pd.DataFrame(data)
 data['addr:country'].value_counts()[:40]
 
-# Remove countries AU, US, GB, IT, RU, CH, DE
-data = data[~data['addr:country'].isin(['AU', 'US', 'GB', 'IT', 'RU', 'CH', 'DE', 'FR', 'CA', 'AT', 'BE', 'NL', 'ES', 'SE', 'IT'])]
+# # Remove countries AU, US, GB, IT, RU, CH, DE
+# data = data[~data['addr:country'].isin(['AU', 'US', 'GB', 'IT', 'RU', 'CH', 'DE', 'FR', 'CA', 'AT', 'BE', 'NL', 'ES', 'SE', 'IT'])]
 
 # Save the DataFrame to a CSV file
 output_path = os.path.join(base_path, 'alltheplaces.csv')
