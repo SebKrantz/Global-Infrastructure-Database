@@ -197,15 +197,11 @@ combine_points <- function() {
   #
   
   GIP <- load_GIP()
-  # descr(GIP)
   
   # Deduplication
   GIP |> fsubset(fduplicated(geohashTools::gh_encode(latitude, longitude, precision = 15), all = TRUE))
-  # GIP %<>% mutate(id = geohashTools::gh_encode(latitude, longitude, precision = 15)) 
-  # GIP %>% varying(gem_location_id ~ id)
   GIP %<>% fgroup_by(gem_location_id, status) %>% collapg(w = capacity_mw) %>% 
     fsubset(status %in% c("operating", "construction", "inactive", "mothballed"))
-  table(GIP$status)
   
   GIP_prep <- GIP |> fcompute(
     id = paste("GIP", gem_location_id, status, sep = "_"), 
@@ -213,8 +209,8 @@ combine_points <- function() {
     lat = latitude,
     ref = gem_unit_phase_id,
     name = plant_project_name,
-    address = paste(city, subnational_unit_state_province, country_area, sep = ", "),
-    # description = NA_character_,
+    address = paste(city, local_area_taluk_county, major_area_prefecture_district,
+                    subnational_unit_state_province, country_area, sep = ", "),
     source_orig = gem_wiki_url,
     main_cat = "power", 
     main_tag = "plant_type", 
@@ -222,7 +218,7 @@ combine_points <- function() {
     alt_cats = NA_character_, 
     alt_tags_values = NA_character_,
     other_tags_values = paste0('status:"', status, '", start_year:"', start_year, '", retired_year:"', retired_year, '", technology:"', technology, 
-                             '", fuel:"', fuel, '", owner:"', owner, '", parent:"', parent, '", location_accuracy:"', location_accuracy, '"'),
+                               '", fuel:"', fuel_combustion_only, '", owner:"', owner_s, '", parent:"', parent_s, '", location_accuracy:"', location_accuracy, '"'),
     variable = "capacity_mw",
     value = capacity_mw
   )
@@ -230,6 +226,174 @@ combine_points <- function() {
   if(any_duplicated(GIP_prep$id)) stop("GIP: Duplicated ids")
   
   rm(GIP); gc()
+
+  #
+  ### Global Cement and Concrete Tracker --------------------------------------------
+  #
+  
+  GEM_cement <- load_GEM_cement()
+  coords_cem <- strsplit(GEM_cement$coordinates, ",")
+  lat_cem <- as.numeric(trimws(vapply(coords_cem, `[`, character(1), 1L)))
+  lon_cem <- as.numeric(trimws(vapply(coords_cem, `[`, character(1), 2L)))
+  GEM_cement$latitude <- lat_cem
+  GEM_cement$longitude <- lon_cem
+  
+  CEMENT_prep <- GEM_cement |> fcompute(
+    id = paste("GEMCEM", gem_plant_id, sep = "_"), 
+    lon = longitude,
+    lat = latitude,
+    ref = gem_plant_id,
+    name = gem_asset_name_english,
+    address = paste(municipality, subnational_unit, country_area, sep = ", "),
+    source_orig = gem_wiki_page,
+    main_cat = "industrial", 
+    main_tag = "sector", 
+    main_tag_value = "cement",
+    alt_cats = NA_character_, 
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0('operating_status:"', operating_status, '", start_date:"', start_date, '", owner:"', owner_name_english,
+                               '", plant_type:"', plant_type, '", production_type:"', production_type,
+                               '", ccs_ccus:"', ccs_ccus, '", alternative_fuel:"', alternative_fuel, '"'),
+    variable = "cement_capacity_millions_metric_tonnes_per_annum",
+    value = cement_capacity_millions_metric_tonnes_per_annum
+  )
+  
+  if(any_duplicated(CEMENT_prep$id)) stop("GEM Cement: Duplicated ids")
+  
+  rm(GEM_cement); gc()
+  
+  #
+  ### Global Iron Ore Mines Tracker -------------------------------------------------
+  #
+  
+  GEM_iron_ore <- load_GEM_iron_ore()
+  coords_iron <- strsplit(GEM_iron_ore$coordinates, ",")
+  lat_iron <- as.numeric(trimws(vapply(coords_iron, `[`, character(1), 1L)))
+  lon_iron <- as.numeric(trimws(vapply(coords_iron, `[`, character(1), 2L)))
+  GEM_iron_ore$latitude <- lat_iron
+  GEM_iron_ore$longitude <- lon_iron
+  
+  IRON_prep <- GEM_iron_ore |> fcompute(
+    id = paste("GEMIRON", gem_asset_id, sep = "_"), 
+    lon = longitude,
+    lat = latitude,
+    ref = gem_asset_id,
+    name = asset_name_english,
+    address = paste(municipality, subnational_unit, country_area, sep = ", "),
+    source_orig = gem_wiki_page_url,
+    main_cat = "mining", 
+    main_tag = "commodity", 
+    main_tag_value = "iron_ore",
+    alt_cats = NA_character_, 
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0('operating_status:"', operating_status, '", start_date:"', start_date, '", stop_date:"', stop_date,
+                               '", design_capacity_ttpa:"', design_capacity_ttpa,
+                               '", production_2024_ttpa:"', production_2024_ttpa, '"'),
+    variable = "design_capacity_ttpa",
+    value = suppressWarnings(as.numeric(design_capacity_ttpa))
+  )
+  
+  if(any_duplicated(IRON_prep$id)) stop("GEM Iron Ore: Duplicated ids")
+  
+  rm(GEM_iron_ore); gc()
+  
+  #
+  ### Global Chemicals Inventory ----------------------------------------------------
+  #
+  
+  GEM_chem <- load_GEM_chemicals()
+  coords_chem <- strsplit(GEM_chem$coordinates, ",")
+  lat_chem <- as.numeric(trimws(vapply(coords_chem, `[`, character(1), 1L)))
+  lon_chem <- as.numeric(trimws(vapply(coords_chem, `[`, character(1), 2L)))
+  GEM_chem$latitude <- lat_chem
+  GEM_chem$longitude <- lon_chem
+  
+  CHEM_prep <- GEM_chem |> fcompute(
+    id = paste("GEMCHEM", gem_plant_id, sep = "_"), 
+    lon = longitude,
+    lat = latitude,
+    ref = gem_plant_id,
+    name = plant_name_english,
+    address = paste(municipality, subnational_unit, country_area, sep = ", "),
+    source_orig = gem_wiki_page,
+    main_cat = "industrial", 
+    main_tag = "sector", 
+    main_tag_value = "chemicals",
+    alt_cats = NA_character_, 
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0('primary_products:"', primary_products, '", secondary_products:"', secondary_products,
+                               '", feedstock:"', feedstock, '", feedstock_accuracy:"', feedstock_accuracy, '"'),
+    variable = NA_character_,
+    value = NA_real_
+  )
+  
+  if(any_duplicated(CHEM_prep$id)) stop("GEM Chemicals: Duplicated ids")
+  
+  rm(GEM_chem); gc()
+  
+  #
+  ### Global Iron and Steel Tracker -------------------------------------------------
+  #
+  
+  GEM_steel <- load_GEM_steel()
+  coords_steel <- strsplit(GEM_steel$coordinates, ",")
+  lat_steel <- as.numeric(trimws(vapply(coords_steel, `[`, character(1), 1L)))
+  lon_steel <- as.numeric(trimws(vapply(coords_steel, `[`, character(1), 2L)))
+  GEM_steel$latitude <- lat_steel
+  GEM_steel$longitude <- lon_steel
+  
+  STEEL_prep <- GEM_steel |> fcompute(
+    id = paste("GEMSTEEL", plant_id,
+               geohashTools::gh_encode(latitude, longitude, precision = 15), sep = "_"), 
+    lon = longitude,
+    lat = latitude,
+    ref = plant_id,
+    name = plant_name_english,
+    address = paste(municipality, subnational_unit_province_state, country_area, sep = ", "),
+    source_orig = gem_wiki_page,
+    main_cat = "industrial", 
+    main_tag = "sector", 
+    main_tag_value = "steel",
+    alt_cats = NA_character_, 
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0('status:"', status, '", start_date:"', start_date,
+                               '", nominal_crude_steel_capacity_ttpa:"', nominal_crude_steel_capacity_ttpa, '"'),
+    variable = "nominal_crude_steel_capacity_ttpa",
+    value = suppressWarnings(as.numeric(nominal_crude_steel_capacity_ttpa))
+  ) |> fslice(id, how = "max", order.by = replace_na(value))
+  
+  if(any_duplicated(STEEL_prep$id)) stop("GEM Steel: Duplicated ids")
+  
+  rm(GEM_steel); gc()
+  
+  #
+  ### TZ-SAM Solar Asset Mapper -----------------------------------------------------
+  #
+  
+  SAM <- load_solar_assets()
+  
+  SAM_prep <- SAM |> fcompute(
+    id = paste("SAM", cluster_id,
+               geohashTools::gh_encode(latitude, longitude, precision = 15), sep = "_"),
+    lon = longitude,
+    lat = latitude,
+    ref = as.character(cluster_id),
+    name = NA_character_,
+    address = country,
+    source_orig = NA_character_,
+    main_cat = "power",
+    main_tag = "plant_type",
+    main_tag_value = "solar",
+    alt_cats = NA_character_,
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0('constructed_before:"', constructed_before, '", constructed_after:"', constructed_after, '"'),
+    variable = "capacity_mw",
+    value = capacity_mw
+  )
+  
+  if (any_duplicated(SAM_prep$id)) stop("SAM: Duplicated ids")
+  
+  rm(SAM); gc()
   
   #
   ### PortWatch (IMF) ---------------------------------------------------------------

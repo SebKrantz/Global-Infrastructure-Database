@@ -21,11 +21,67 @@ load_GIP <- function() {
   
 }
 
-# https://globalenergymonitor.org/projects/global-iron-and-steel-tracker/download-data/
-# Also load more GEM data...
-load_GSP <- function() {
+load_GEM_cement <- function() {
+  
+  readxl::read_xlsx("data/GEM/Global-Cement-and-Concrete-Tracker_July-2025.xlsx",
+                    sheet = "Plant Data") |>
+    janitor::clean_names()
   
 }
+
+load_GEM_iron_ore <- function() {
+  
+  readxl::read_xlsx("data/GEM/Global-Iron-Ore-Mines-Tracker-August-2025-V1.xlsx",
+                    sheet = "Main Data") |>
+    janitor::clean_names() |> get_vars(varying)
+  
+}
+
+load_GEM_chemicals <- function() {
+  
+  readxl::read_xlsx("data/GEM/Plant-level-data-Global-Chemicals-Inventory-November-2025-V1.xlsx",
+                    sheet = "Plant data") |>
+    janitor::clean_names() |> get_vars(varying)
+  
+}
+
+load_GEM_steel <- function() {
+  
+  plants <- readxl::read_xlsx(
+    "data/GEM/Plant-level-data-Global-Iron-and-Steel-Tracker-December-2025-V1.xlsx",
+    sheet = "Plant data"
+  ) |> janitor::clean_names() |> get_vars(varying)
+  
+  caps <- readxl::read_xlsx(
+    "data/GEM/Plant-level-data-Global-Iron-and-Steel-Tracker-December-2025-V1.xlsx",
+    sheet = "Plant capacities and status"
+  ) |> janitor::clean_names() |> get_vars(varying)
+  
+  join(plants, caps, on = c("plant_id", "plant_name_english", "plant_name_other_language",
+                             "country_area", "start_date"))
+  
+}
+
+# Spatial Finance Initiative (Global Data on Certain Productive Assets)
+# https://www.cgfi.ac.uk/spatial-finance-initiative/geoasset-project/geoasset-databases/
+load_SFI <- function() {
+  
+  list(
+    cement = readxl::read_xlsx("data/SFI/SFI-Global-Cement-Database-July-2021.xlsx", 
+                               sheet = "SFI_ALD_Cement_Database"),
+    paper_pulp = readxl::read_xlsx("data/SFI/SFI_ALD_Pulp_Paper_Database_October_2024.xlsx", 
+                                   sheet = "SFI_Pulp_Paper_Database"),
+    steel = readxl::read_xlsx("data/SFI/SFI-Global-Steel-Database-July-2021.xlsx", 
+                              sheet = "SFI_ALD_Steel_Database"),
+    ethylene = readxl::read_xlsx("data/SFI/SFI_ALD_Global_Ethylene_Database_October_2024.xlsx", 
+                                 sheet = "Global_Ethylene_Production"),
+    beef = readxl::read_xlsx("data/SFI/SFI_ALD_Beef_Abattoirs_Top5_Dec_2022.xlsx", 
+                             sheet = "SFI_ALD_Beef_Abattoir_Top5")
+  ) |> 
+    lapply(function(x) get_vars(x, varying(x)) |> frename(tolower))
+  
+}
+
 
 # Open Zone Map: https://www.openzonemap.com/map
 load_OZM <- function() {
@@ -79,7 +135,8 @@ load_portswatch <- function() {
 # https://gee-community-catalog.org/projects/tzero/
 load_solar_assets <- function() {
   
-  fread("data/TZ-SAM_Solar Asset Mapper - Q1 2025/tz-sam-runs_2025-Q1_outputs_external_analysis_polygons.csv")
+  # fread("data/TZ-SAM_Solar Asset Mapper - Q1 2025/tz-sam-runs_2025-Q1_outputs_external_analysis_polygons.csv")
+  fread("/Users/sebastiankrantz/Documents/World Bank/Global-Infrastructure-Database/data/SAM/TZ-SAM_Solar Asset Mapper - Q4 2025/2025-Q4_analysis_polygons.csv")
   
 }
 
@@ -97,13 +154,26 @@ load_OGIM <- function() {
   
   layers <- sf::st_layers("data/OGIM/OGIM_v2.7.gpkg")
   
-  sapply(layers$name, function(x) {
+  res <- sapply(layers$name, function(x) {
     
-    sf::st_read("data/OGIM/OGIM_v2.7.gpkg", layer = x)    
+    d <- sf::st_read("data/OGIM/OGIM_v2.7.gpkg", layer = x) |> 
+      janitor::clean_names() 
+    
+    if(!any(names(d) %like% "latitude")) {
+      d %<>% ss(st_is_valid(.) & vlengths(.$geom) >= 1L) %>% 
+        st_centroid() %>% tfm(st_coordinates(.) %>% qDF() %>% set_names(c("longitude", "latitude")))
+    }
+    
+    st_drop_geometry(d) |> get_vars(varying)
     
   }, simplify = FALSE)
   
+  res$Data_Catalog <- NULL
+  
+  res
 }
+
+# Vector data ---------------------------------------------------
 
 # Global mining footprint mapped from high-resolution satellite imagery 
 # https://zenodo.org/records/7894216 (data/GMF)
@@ -150,26 +220,6 @@ load_OOKLA <- function() {
 }
 
 
-# Spatial Finance Initiative (Global Data on Certain Productive Assets)
-# https://www.cgfi.ac.uk/spatial-finance-initiative/geoasset-project/geoasset-databases/
-load_SFI <- function() {
-  
-  list(
-    cement = readxl::read_xlsx("data/SFI/SFI-Global-Cement-Database-July-2021.xlsx", 
-                               sheet = "SFI_ALD_Cement_Database"),
-    paper_pulp = readxl::read_xlsx("data/SFI/SFI_ALD_Pulp_Paper_Database_October_2024.xlsx", 
-                                   sheet = "SFI_Pulp_Paper_Database"),
-    steel = readxl::read_xlsx("data/SFI/SFI-Global-Steel-Database-July-2021.xlsx", 
-                              sheet = "SFI_ALD_Steel_Database"),
-    ethylene = readxl::read_xlsx("data/SFI/SFI_ALD_Global_Ethylene_Database_October_2024.xlsx", 
-                                 sheet = "Global_Ethylene_Production"),
-    beef = readxl::read_xlsx("data/SFI/SFI_ALD_Beef_Abattoirs_Top5_Dec_2022.xlsx", 
-                             sheet = "SFI_ALD_Beef_Abattoir_Top5")
-  ) |> 
-    lapply(function(x) get_vars(x, varying(x)) |> frename(tolower))
-  
-}
- 
 
 # https://gee-community-catalog.org/projects/energy_farms/
 # -> Based on OSM data, not updated...
