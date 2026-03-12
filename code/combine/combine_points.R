@@ -151,7 +151,7 @@ combine_points <- function() {
   ### Opencellid Cell Towers -------------------------------------------------
   #
   
-  OCID <- fread("data//opencellid/cell_towers.csv.gz") %>% get_vars(varying(.))
+  OCID <- fread("data/opencellid/cell_towers.csv.gz") %>% get_vars(varying(.))
   # descr(OCID)
   # Deduplication 
   OCID %<>% collap(~ radio + lon + lat, fmode, w = ~ samples, wFUN = fmax)
