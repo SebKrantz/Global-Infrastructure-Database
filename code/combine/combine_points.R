@@ -605,6 +605,8 @@ combine_points <- function() {
   #
   
   rowbind(
+    OSM_points = OSM_points_prep,
+    OSM_multipolygons = OSM_multipolygons_prep,
     OVP = OVP_prep,
     FSP = FSP_prep,
     ATP = ATP_prep,
