@@ -8,7 +8,8 @@ fastverse_conflicts()
 
 # Set target options:
 tar_option_set(
-  packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb"),
+  packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb",
+               "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr", "jsonlite"),
   trust_timestamps = TRUE,
   format = "qs"
 )
@@ -149,6 +150,16 @@ list(
   tar_target(
     name = ookla_data,
     command = { ookla_files; load_OOKLA() }
+  ),
+  
+  # ============================================
+  # Combine Datasets
+  # ============================================
+  
+  tar_target(
+    name = points_combined,
+    command = { overture_places; foursquares_places; alltheplaces_csv; ocid_file; combine_points() },
+    format = "qs"
   )
 
 )
