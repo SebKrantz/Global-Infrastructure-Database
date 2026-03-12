@@ -36,6 +36,59 @@ classify_overture_foursquares <- function(source) {
 
 combine_points <- function() {
   
+  
+  #
+  ### Open Street Map ------------------------------------------------------------
+  #
+  
+  OSM_points <- qread("data/osm/points.qs")
+  
+  OSM_points_prep <- OSM_points |> fcompute(
+    id = paste0("OSM_node_", osm_id),
+    lon = lon,
+    lat = lat,
+    ref = ref,
+    name = name,
+    address = factor(NA_character_),
+    # description = NA_character_,
+    source_orig = factor(NA_character_),
+    main_cat = main_cat,
+    main_tag = main_tag,
+    main_tag_value = main_tag_value,
+    alt_cats = alt_cats,
+    alt_tags_values = alt_tags_values,
+    other_tags_values = factor(NA_character_),
+    variable = factor(NA_character_),
+    value = NA_real_
+  ) |> collap(~ id)
+  
+  if(any_duplicated(OSM_points_prep$id)) stop("OSM: Duplicated ids")
+  rm(OSM_points); gc()
+  
+  OSM_multipolygons <- qread("data/osm/multipolygons.qs")
+  
+  OSM_multipolygons_prep <- OSM_multipolygons |> fcompute(
+    id = iif(is.na(osm_id), paste0("OSM_way_", osm_way_id), paste0("OSM_node_", osm_id)),
+    lon = lon,
+    lat = lat,
+    ref = ref,
+    name = name,
+    address = factor(NA_character_),
+    # description = NA_character_,
+    source_orig = factor(NA_character_),
+    main_cat = main_cat,
+    main_tag = main_tag,
+    main_tag_value = main_tag_value,
+    alt_cats = alt_cats,
+    alt_tags_values = alt_tags_values,
+    other_tags_values = factor(NA_character_),
+    variable = factor("area_m2"),
+    value = unattrib(area)
+  ) |> collap(~ id)
+  
+  if(any_duplicated(OSM_multipolygons_prep$id)) stop("OSM: Duplicated ids")
+  rm(OSM_multipolygons); gc()
+  
   #
   ### Overture Places ------------------------------------------------------------
   #
