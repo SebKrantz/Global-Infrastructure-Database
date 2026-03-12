@@ -173,6 +173,16 @@ load_OGIM <- function() {
   res
 }
 
+# Internal World Bank Shared Data
+load_ITU_nodes <- function() {
+  
+  geojsonsf::geojson_sf("data/ITU/ITU_Nov_2024/ITU_node_ties.geojson") %>%
+    fselect(-lon_, -lat_) %>%
+    tfm(st_coordinates(.) %>% qDF() %>% set_names(c("lon", "lat"))) %>% 
+    st_drop_geometry()
+    
+}
+
 # Vector data ---------------------------------------------------
 
 # Global mining footprint mapped from high-resolution satellite imagery 

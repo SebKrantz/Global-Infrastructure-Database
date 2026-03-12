@@ -396,6 +396,87 @@ combine_points <- function() {
   rm(SAM); gc()
   
   #
+  ### Oil and Gas Infrastructure Mapping (OGIM) -------------------------------------
+  #
+  
+  OGIM_list <- load_OGIM()
+  OGIM_flat <- Map(function(d, nm) { d$ogim_layer <- nm; d }, OGIM_list, names(OGIM_list)) |>
+    rowbind(fill = TRUE)
+  OGIM_flat$name_display <- fcoalesce(OGIM_flat$fac_name, OGIM_flat$name)
+  OGIM_flat %<>% fsubset(!is.na(latitude) & !is.na(longitude))
+  
+  OGIM_prep <- OGIM_flat |> fcompute(
+    id = paste("OGIM", ogim_id,
+               geohashTools::gh_encode(latitude, longitude, precision = 15), sep = "_"),
+    lon = longitude,
+    lat = latitude,
+    ref = as.character(ogim_id),
+    name = name_display,
+    address = paste(country, state_prov, sep = ", "),
+    source_orig = NA_character_,
+    main_cat = "power",
+    main_tag = "ogim_layer",
+    main_tag_value = ogim_layer,
+    alt_cats = NA_character_,
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0(
+      'fac_type:"', fcoalesce(fac_type, ""), '", operator:"', fcoalesce(operator, ""),
+      '", commodity:"', fcoalesce(commodity, ""), '", on_offshore:"', fcoalesce(on_offshore, ""),
+      '", gas_capacity_mmcfd:"', fcoalesce(as.character(gas_capacity_mmcfd), ""),
+      '", gas_throughput_mmcfd:"', fcoalesce(as.character(gas_throughput_mmcfd), ""),
+      '", gas_flared_mmcf:"', fcoalesce(as.character(gas_flared_mmcf), ""),
+      '", average_flare_temp_k:"', fcoalesce(as.character(average_flare_temp_k), ""),
+      '", days_clear_observations:"', fcoalesce(as.character(days_clear_observations), ""),
+      '", segment_type:"', fcoalesce(segment_type, ""),
+      '", liq_throughput_bpd:"', fcoalesce(as.character(liq_throughput_bpd), ""),
+      '", pipe_diameter_mm:"', fcoalesce(as.character(pipe_diameter_mm), ""),
+      '", pipe_length_km:"', fcoalesce(as.character(pipe_length_km), ""),
+      '", pipe_material:"', fcoalesce(pipe_material, ""),
+      '", area_km2:"', fcoalesce(as.character(area_km2), ""),
+      '", num_storage_tanks:"', fcoalesce(as.character(num_storage_tanks), ""),
+      '", num_compr_units:"', fcoalesce(as.character(num_compr_units), ""),
+      '", site_hp:"', fcoalesce(as.character(site_hp), ""), '"'
+    ),
+    variable = "liq_capacity_bpd",
+    value = as.double(liq_capacity_bpd)
+  )
+  
+  if (any_duplicated(OGIM_prep$id)) stop("OGIM: Duplicated ids")
+  
+  rm(OGIM_list, OGIM_flat); gc()
+  
+  #
+  ### ITU nodes (telecom) -----------------------------------------------------------
+  #
+  
+  ITU <- load_ITU_nodes()
+  
+  ITU_prep <- ITU |> fcompute(
+    id = paste("ITU", id, geohashTools::gh_encode(lat, lon, precision = 15), sep = "_"),
+    lon = lon,
+    lat = lat,
+    ref = as.character(id),
+    name = name,
+    address = paste(country, region, sep = ", "),
+    source_orig = NA_character_,
+    main_cat = "communications",
+    main_tag = "type_infr",
+    main_tag_value = type_infr,
+    alt_cats = NA_character_,
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0('layer:"', fcoalesce(layer, ""), '", node_id:"', fcoalesce(as.character(node_id), ""),
+                              '", country:"', fcoalesce(country, ""), '", region:"', fcoalesce(region, ""),
+                              '", type_:"', fcoalesce(as.character(type_), ""), '", uid:"', fcoalesce(as.character(uid), ""),
+                              '", validity:"', fcoalesce(as.character(validity), ""), '"'),
+    variable = NA_character_,
+    value = NA_real_
+  ) |> collap(~ id)
+  
+  if (any_duplicated(ITU_prep$id)) stop("ITU: Duplicated ids")
+  
+  rm(ITU); gc()
+  
+  #
   ### PortWatch (IMF) ---------------------------------------------------------------
   #
   
@@ -465,6 +546,27 @@ combine_points <- function() {
   if (any_duplicated(OZM_prep$id)) stop("PW: Duplicated ids")
   
   rm(OZM); gc()
+
+  #
+  ### Combine all datasets -----------------------------------------------------------
+  #
   
+  rowbind(
+    OVP = OVP_prep,
+    FSP = FSP_prep,
+    ATP = ATP_prep,
+    OCID = OCID_prep,
+    GIP = GIP_prep,
+    GEMCEM = CEMENT_prep,
+    GEMIRON = IRON_prep,
+    GEMCHEM = CHEM_prep,
+    GEMSTEEL = STEEL_prep,
+    SAM = SAM_prep,
+    OGIM = OGIM_prep,
+    ITU = ITU_prep,
+    PW = PW_prep,
+    OZM = OZM_prep,
+    idcol = "source"
+  )
 }
 
