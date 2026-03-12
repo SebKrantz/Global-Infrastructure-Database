@@ -16,7 +16,7 @@ load_OCID <- function() {
 
 load_GIP <- function() {
   
-  readxl::read_xlsx("data/GIP/Global-Integrated-Power-March-2025.xlsx", sheet = 2) |> 
+  readxl::read_xlsx("data/GEM/Global-Integrated-Power-March-2026.xlsx", sheet = 2) |> 
     janitor::clean_names()
   
 }
@@ -29,6 +29,10 @@ load_GSP <- function() {
 
 # Open Zone Map: https://www.openzonemap.com/map
 load_OZM <- function() {
+  
+  fread("data/OZM/Open Zone Map raw data - The Adrianople Group - 2023.csv") |> 
+    janitor::clean_names() |> 
+    get_vars(varying)
   
 }
 
@@ -49,6 +53,28 @@ load_WPI <- function() {
     get_vars(varying)
   
 }
+
+fetch_portswatch <- function() {
+  
+  imf_pw <- rowbind(
+    geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=0"),
+    geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=1000"),
+    geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=2000")
+  )  %>% st_drop_geometry() # %>% tfm(qDF(st_coordinates(.)) |> set_names(c("lon", "lat")))
+  
+  fwrite(imf_pw, "data/portswatch/portswatch.csv")
+  
+  "data/portswatch/portswatch.csv"
+}
+  
+load_portswatch <- function() {
+  
+  fread("data/portswatch/portswatch.csv") |> 
+    janitor::clean_names() |> 
+    get_vars(varying)
+  
+}
+
 
 # https://gee-community-catalog.org/projects/tzero/
 load_solar_assets <- function() {

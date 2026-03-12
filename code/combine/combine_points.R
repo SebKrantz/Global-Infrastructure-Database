@@ -231,7 +231,76 @@ combine_points <- function() {
   
   rm(GIP); gc()
   
+  #
+  ### PortWatch (IMF) ---------------------------------------------------------------
+  #
   
+  PW <- load_portswatch()
+  
+  PW_prep <- PW |> fcompute(
+    id = paste0("PW_", portid),
+    lon = lon,
+    lat = lat,
+    ref = portid,
+    name = portname,
+    address = fullname,
+    source_orig = NA_character_,
+    main_cat = "port",
+    main_tag = "facility",
+    main_tag_value = "port",
+    alt_cats = NA_character_,
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0(
+      'iso3:"', iso3, '", locode:"', locode, '", continent:"', continent, '", ',
+      'industry_top1:"', industry_top1, '", industry_top2:"', industry_top2, '", industry_top3:"', industry_top3, '", ',
+      'vessel_count_total:"', vessel_count_total, '", vessel_count_container:"', vessel_count_container, '", ',
+      'vessel_count_dry_bulk:"', vessel_count_dry_bulk, '", vessel_count_general_cargo:"', vessel_count_general_cargo, '", ',
+      'vessel_count_ro_ro:"', vessel_count_ro_ro, '", vessel_count_tanker:"', vessel_count_tanker, '", ',
+      'share_country_maritime_import:"', share_country_maritime_import, '", share_country_maritime_export:"', share_country_maritime_export, '"'
+    ),
+    variable = "vessel_count_total",
+    value = as.double(vessel_count_total)
+  )
+  
+  if (any_duplicated(PW_prep$id)) stop("PW: Duplicated ids")
+  
+  rm(PW); gc()
+  
+  #
+  ### Open Zone Map ---------------------------------------------------------------
+  #
+  
+  OZM <- load_OZM()
+  
+  OZM_prep <- OZM |> fcompute(
+    id = paste0("OZM_", id),
+    lon = longitude,
+    lat = latitude,
+    ref = NA_character_,
+    name = title,
+    address = country,
+    # description = NA_character_,
+    source_orig = note,
+    main_cat = "SEZ", 
+    main_tag = "zone_type", 
+    main_tag_value = zone_type,
+    alt_cats = NA_character_, 
+    alt_tags_values = NA_character_,
+    other_tags_values = paste0('status:"', status, '", zone_specialization:"', zone_specialization, 
+                             '", management_type:"', management_type, '", management_company:"', management_company,
+                             '", sez_framework:"', sez_framework, '", size_class:"', size_class, '", url:"', url,
+                             '", created:"', created, '", modified:"', modified,  
+                             '", nearest_airport:"', nearest_airport, '", nearest_airport_distance_km:"', nearest_airport_distance_km,
+                             '", nearest_port:"', nearest_port, '", nearest_port_distance_km:"', nearest_port_distance_km,
+                             '", capital_city:"', capital_city, '", capital_city_distance_km:"', capital_city_distance_km, 
+                             '", populous_city:"', populous_city, '", populous_city_distance_km:"', populous_city_distance_km, '"'),
+    variable = "size_hectares",
+    value = as.numeric(size_hectares)
+  ) 
+  
+  if (any_duplicated(OZM_prep$id)) stop("PW: Duplicated ids")
+  
+  rm(OZM); gc()
   
 }
 
