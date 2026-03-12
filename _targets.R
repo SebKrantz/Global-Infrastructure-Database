@@ -117,40 +117,45 @@ list(
     format = "file"
   ),
 
-  tar_target(
-    name = ocid_data,
-    command = { ocid_file; load_OCID() }
-  ),
-
   # ============================================
-  # Smaller Datasets: WPI (World Port Index)
+  # Smaller Datasets: PortWatch (IMF)
   # ============================================
 
   tar_target(
-    name = wpi_file,
-    command = fetch_WPI(),
+    name = portswatch_file,
+    command = fetch_portswatch(),
     format = "file"
   ),
 
-  tar_target(
-    name = wpi_data,
-    command = { wpi_file; load_WPI() }
-  ),
+  # # ============================================
+  # # Smaller Datasets: WPI (World Port Index)
+  # # ============================================
 
-  # ============================================
-  # Smaller Datasets: OOKLA (Internet Speeds)
-  # ============================================
+  # tar_target(
+  #   name = wpi_file,
+  #   command = fetch_WPI(),
+  #   format = "file"
+  # ),
 
-  tar_target(
-    name = ookla_files,
-    command = fetch_OOKLA(),
-    format = "file"
-  ),
+  # tar_target(
+  #   name = wpi_data,
+  #   command = { wpi_file; load_WPI() }
+  # ),
 
-  tar_target(
-    name = ookla_data,
-    command = { ookla_files; load_OOKLA() }
-  ),
+  # # ============================================
+  # # Smaller Datasets: OOKLA (Internet Speeds)
+  # # ============================================
+
+  # tar_target(
+  #   name = ookla_files,
+  #   command = fetch_OOKLA(),
+  #   format = "file"
+  # ),
+
+  # tar_target(
+  #   name = ookla_data,
+  #   command = { ookla_files; load_OOKLA() }
+  # ),
   
   # ============================================
   # Combine Datasets
@@ -158,7 +163,7 @@ list(
   
   tar_target(
     name = points_combined,
-    command = { overture_places; foursquares_places; alltheplaces_csv; ocid_file; combine_points() },
+    command = { overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; combine_points() },
     format = "qs"
   )
 
