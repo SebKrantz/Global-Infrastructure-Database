@@ -6,10 +6,16 @@ library(fastverse)
 library(targets)
 fastverse_conflicts()
 
+# Set to "never" to skip re-running expensive fetch/process targets and skip
+# re-downloading files that already exist inside fetcher functions.
+# Set to "thorough" to re-run all targets and re-fetch all data.
+CUES_MODE <- "never"
+
 # Set target options:
 tar_option_set(
   packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb",
                "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr", "jsonlite"),
+  globals = list(CUES_MODE = CUES_MODE),
   trust_timestamps = TRUE,
   format = "qs"
 )
@@ -46,19 +52,22 @@ list(
   tar_target(
     name = osm_ctry,
     command = download_geofabrik_countries(inc_ctry),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   tar_target(
     name = osm_proc,
     command = proc_osm(osm_ctry),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   tar_target(
     name = combined_osm,
     command = { osm_proc; combine_osm_proc() },
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   # ============================================
@@ -73,7 +82,8 @@ list(
   tar_target(
     name = overture_places,
     command = download_overture_places(overture_latest_release, inc_ctry),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   # ============================================
@@ -88,7 +98,8 @@ list(
   tar_target(
     name = foursquares_places,
     command = download_foursquares_places(foursquares_s3_paths, inc_ctry),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   # ============================================
@@ -98,13 +109,15 @@ list(
   tar_target(
     name = alltheplaces_zip,
     command = { system("python3 code/fetch/fetch_alltheplaces.py"); "data/alltheplaces/output.zip" },
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   tar_target(
     name = alltheplaces_csv,
     command = { alltheplaces_zip; system("python3 code/process/proc_alltheplaces.py"); "data/alltheplaces/alltheplaces.csv" },
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   # ============================================
@@ -114,7 +127,8 @@ list(
   tar_target(
     name = ocid_file,
     command = fetch_OCID(),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   # ============================================
@@ -124,7 +138,8 @@ list(
   tar_target(
     name = portswatch_file,
     command = fetch_portswatch(),
-    format = "file"
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
   ),
 
   # # ============================================
@@ -163,7 +178,7 @@ list(
   
   tar_target(
     name = points_combined,
-    command = { overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; combine_points() },
+    command = { combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; combine_points() },
     format = "qs"
   )
 

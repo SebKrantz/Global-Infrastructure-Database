@@ -2,6 +2,7 @@
 # Test Overture Classification
 ########################################
 
+if (FALSE) {
 library(collapse)
 library(qs)
 
@@ -90,3 +91,4 @@ Unmatched: %d\nOSM categories used: %d / %d\n",
   nrow(remaining),
   length(results), length(overture_foursquares_to_osm_det)
 ))
+}

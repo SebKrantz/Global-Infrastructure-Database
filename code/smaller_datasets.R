@@ -2,10 +2,12 @@
 
 fetch_OCID <- function() {
 
+  dest <- "data/opencellid/cell_towers.csv.gz"
+  if (isTRUE(CUES_MODE == "never") && file.exists(dest)) return(dest)
   download.file("https://opencellid.org/ocid/downloads?token=pk.00ef6e91c8e916e61168597788c6e6e8&type=full&file=cell_towers.csv.gz",
-                destfile = "data/opencellid/cell_towers.csv.gz", method = "curl")
+                destfile = dest, method = "curl")
 
-  "data/opencellid/cell_towers.csv.gz"
+  dest
 }
 
 load_OCID <- function() {
@@ -111,16 +113,17 @@ load_WPI <- function() {
 }
 
 fetch_portswatch <- function() {
-  
+
+  dest <- "data/portswatch/portswatch.csv"
+  if (isTRUE(CUES_MODE == "never") && file.exists(dest)) return(dest)
   imf_pw <- rowbind(
-    geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=0"),
-    geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=1000"),
-    geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=2000")
-  )  %>% st_drop_geometry() # %>% tfm(qDF(st_coordinates(.)) |> set_names(c("lon", "lat")))
-  
-  fwrite(imf_pw, "data/portswatch/portswatch.csv")
-  
-  "data/portswatch/portswatch.csv"
+      geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=0"),
+      geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=1000"),
+      geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=2000")
+    ) %>% st_drop_geometry()
+    fwrite(imf_pw, dest)
+
+  dest
 }
   
 load_portswatch <- function() {

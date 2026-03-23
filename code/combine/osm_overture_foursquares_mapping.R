@@ -2,26 +2,28 @@
 # Combine OSM, Overture, and Foursquares
 ########################################
 
-osm_data <- list(points = qread("data/osm/points.qs") |> 
-                   fcount(main_cat, main_tag, main_tag_value),
-                 multipolygons = qread("data/osm/multipolygons.qs") |> 
-                   fcount(main_cat, main_tag, main_tag_value)) |>
-              rowbind(idcol = "source") |> roworder(-N)
-osm_cat <- fcount(osm_data, main_cat, w = N) |> roworder(-N)
+if (FALSE) {
+  library(qs)
+  osm_data <- list(points = qread("data/OSM/points.qs") |>
+                     fcount(main_cat, main_tag, main_tag_value),
+                   multipolygons = qread("data/OSM/multipolygons.qs") |>
+                     fcount(main_cat, main_tag, main_tag_value)) |>
+                rowbind(idcol = "source") |> roworder(-N)
+  osm_cat <- fcount(osm_data, main_cat, w = N) |> roworder(-N)
 
-overture_cat <- qread("data/overture/categories.qs")
-fndistinct(overture_cat)
-overture_cat |> fcount(V1)
+  overture_cat <- qread("data/overture/categories.qs")
+  fndistinct(overture_cat)
+  overture_cat |> fcount(V1)
 
-foursquares_cat <- qread("data/foursquares/categories.qs")
-fndistinct(foursquares_cat)
-foursquares_cat |> fcount(level1_category_name)
+  foursquares_cat <- qread("data/foursquares/categories.qs")
+  fndistinct(foursquares_cat)
+  foursquares_cat |> fcount(level1_category_name)
 
-# intersect(osm_cat$main_cat, overture_cat$V1)
+  # intersect(osm_cat$main_cat, overture_cat$V1)
 
-nam <- names(top_level_correspondence)
-View(subset(osm_cat, main_cat %!in% nam))
-
+  nam <- names(top_level_correspondence)
+  View(subset(osm_cat, main_cat %!in% nam))
+}
 
 # Top-level correspondence
 top_level_correspondence <- list(

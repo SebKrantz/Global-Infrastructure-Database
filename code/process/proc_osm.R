@@ -209,9 +209,15 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
 }
 
 combine_osm_proc <- function(proc_osm_dir = "data/OSM/processed") {
-  
+
+  out_files <- c("data/OSM/points.qs", "data/OSM/lines.qs", "data/OSM/multipolygons.qs")
+  if (isTRUE(CUES_MODE == "never") && all(file.exists(out_files))) {
+    message("Combined OSM files already exist, skipping re-combination.")
+    return(out_files)
+  }
+
   files <- list.files(proc_osm_dir, pattern = ".qs", full.names = TRUE)
-  
+
   if(length(files) == 0) {
     stop("No files found in ", proc_osm_dir)
   }

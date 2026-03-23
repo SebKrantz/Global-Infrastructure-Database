@@ -110,6 +110,7 @@ combine_points <- function() {
     main_tag_value = category,
     alt_cats = NA_character_, # TODO: Match?
     alt_tags_values = category_alt, # paste0('update_time:"', update_time, '", website:"', website, '", tel:"', tel, '"') # ?
+    other_tags_values = paste0('update_time:"', update_time, '", website:"', website, '", tel:"', tel, '"'),
     variable = "confidence",
     value = confidence
   )
