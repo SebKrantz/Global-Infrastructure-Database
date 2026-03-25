@@ -149,6 +149,17 @@ list(
     cue = tar_cue(mode = CUES_MODE)
   ),
 
+  # ============================================
+  # Smaller Datasets: EGM (Gridfinder global power grid, Zenodo)
+  # ============================================
+
+  tar_target(
+    name = egm_grid_file,
+    command = fetch_EGM_grid(),
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
+  ),
+
   # # ============================================
   # # Smaller Datasets: WPI (World Port Index)
   # # ============================================
@@ -185,7 +196,7 @@ list(
   
   tar_target(
     name = points_combined,
-    command = { combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; combine_points() },
+    command = { combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; combine_points() },
     format = "qs"
   )
 

@@ -135,6 +135,32 @@ load_portswatch <- function() {
 }
 
 
+# Zenodo concept 3369106 -> latest version (gridfinder / predictive global power)
+# https://zenodo.org/records/3628142
+fetch_EGM_grid <- function() {
+
+  dest <- "data/EGM/grid.gpkg"
+  if (isTRUE(CUES_MODE == "never") && file.exists(dest)) return(dest)
+
+  rec <- jsonlite::fromJSON("https://zenodo.org/api/records/3369106/versions/latest")
+  row <- rec$files[rec$files$key == "grid.gpkg", , drop = FALSE]
+  if (nrow(row) != 1L) {
+    stop("Zenodo EGM: expected exactly one grid.gpkg in latest version, found ", nrow(row))
+  }
+  url <- row$links$self
+  if (length(url) != 1L || !nzchar(url)) {
+    stop("Zenodo EGM: missing download URL for grid.gpkg")
+  }
+
+  dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
+  oldopt <- options(timeout = max(10000, getOption("timeout")))
+  on.exit(options(oldopt), add = TRUE)
+
+  download.file(url, destfile = dest, mode = "wb", method = "curl")
+
+  dest
+}
+
 # https://gee-community-catalog.org/projects/tzero/
 load_solar_assets <- function() {
   
