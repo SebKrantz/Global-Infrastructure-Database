@@ -2,6 +2,8 @@
 proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
   
   files <- list.files(path, pattern = "osm.pbf", full.names = TRUE)
+  dir.create("data/OSM/processed", recursive = TRUE, showWarnings = FALSE)
+  dir.create("data/OSM", recursive = TRUE, showWarnings = FALSE)
   
   if(length(files) == 0) {
     stop("No files found in ", path)

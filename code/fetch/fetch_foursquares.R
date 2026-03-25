@@ -14,6 +14,7 @@ download_foursquares_places <- function(s3_paths, inc_ctry) {
   
   places_path <- grep("places/parquet", s3_paths, value = TRUE)
   categories_path <- grep("categories/parquet", s3_paths, value = TRUE)
+  dir.create("data/foursquares", recursive = TRUE, showWarnings = FALSE)
   
   # Connect to DuckDB
   con <- DBI::dbConnect(duckdb::duckdb())

@@ -3,6 +3,7 @@
 fetch_OCID <- function() {
 
   dest <- "data/opencellid/cell_towers.csv.gz"
+  dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
   if (isTRUE(CUES_MODE == "never") && file.exists(dest)) return(dest)
   download.file("https://opencellid.org/ocid/downloads?token=pk.00ef6e91c8e916e61168597788c6e6e8&type=full&file=cell_towers.csv.gz",
                 destfile = dest, method = "curl")
@@ -98,6 +99,7 @@ load_OZM <- function() {
 # https://msi.nga.mil/Publications/WPI
 fetch_WPI <- function() {
 
+  dir.create("data/WPI", recursive = TRUE, showWarnings = FALSE)
   download.file("https://msi.nga.mil/api/publications/download?type=view&key=16920959/SFH00000/UpdatedPub150.csv",
                 destfile = "data/WPI/WPI.csv", method = "curl")
 
@@ -115,6 +117,7 @@ load_WPI <- function() {
 fetch_portswatch <- function() {
 
   dest <- "data/portswatch/portswatch.csv"
+  dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
   if (isTRUE(CUES_MODE == "never") && file.exists(dest)) return(dest)
   imf_pw <- rowbind(
       geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=0"),
@@ -287,6 +290,7 @@ fetch_OOKLA <- function() {
   quarter <- as.integer(substr(year, 7, 7))
   year <- as.integer(substr(year, 1, 4))
 
+  dir.create("data/OOKLA", recursive = TRUE, showWarnings = FALSE)
   fixed <- ooklaOpenDataR::get_performance_tiles(service = "fixed", year = year, quarter = quarter)
   fixed$tile <- NULL
   qs::qsave(fixed, file = "data/OOKLA/OOKLA_fixed.qs")

@@ -7,6 +7,7 @@ url = 'https://data.alltheplaces.xyz/runs/latest/info_embed.html'  # Replace wit
 
 # Specify the folder where you want to save the downloaded file
 download_folder = 'data/alltheplaces'  # Replace with the actual path
+os.makedirs(download_folder, exist_ok=True)
 
 # Perform a GET request to fetch the HTML content
 response = requests.get(url)

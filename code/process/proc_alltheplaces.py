@@ -13,6 +13,7 @@ with zipfile.ZipFile(zip_path, 'r') as zip_ref:
 # Path to the directory containing the .geojson files
 base_path = 'data/alltheplaces'
 folder_path = 'data/alltheplaces/output/output'
+os.makedirs(base_path, exist_ok=True)
 
 # Initialize an empty list to store the filtered features
 filtered_features = []

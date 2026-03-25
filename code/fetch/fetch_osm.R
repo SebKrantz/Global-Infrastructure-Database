@@ -65,6 +65,7 @@ download_geofabrik_countries <- function(ctry) {
   
   oldopt <- options(timeout = 10000) 
   on.exit(options(oldopt))
+  dir.create("data/OSM/raw", recursive = TRUE, showWarnings = FALSE)
   
   for (c in seq_row(ctry)) {
     Sys.sleep(1)

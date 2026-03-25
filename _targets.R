@@ -235,6 +235,7 @@ list(
   tar_target(
     name = lines_hex_agg,
     command = {
+      dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
       lh <- aggregate_lines_to_hex(
         overture_transportation, egm_grid_file, ogim_gpkg_file, wld12_grid, inc_ctry
       )
@@ -247,6 +248,7 @@ list(
   tar_target(
     name = hex_gridded_combined,
     command = {
+      dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
       hc <- combine_hex_gridded(points_hex_agg, lines_hex_agg)
       qs::qsave(hc, "data/aggregate/infrastructure_hex_r12.qs")
       hc

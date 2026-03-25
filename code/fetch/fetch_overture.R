@@ -21,6 +21,7 @@ get_overture_latest_release <- function() {
 download_overture_places <- function(latest, inc_ctry) {
   
   places_url <- sprintf("s3://overturemaps-us-west-2/release/%s/theme=places/*/*", latest)
+  dir.create("data/overture", recursive = TRUE, showWarnings = FALSE)
   
   # Connect to DuckDB
   con <- DBI::dbConnect(duckdb::duckdb())
