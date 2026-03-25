@@ -14,7 +14,8 @@ CUES_MODE <- "never"
 # Set target options:
 tar_option_set(
   packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb",
-               "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr", "jsonlite"),
+               "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr", "jsonlite",
+               "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse", "data.table"),
   globals = list(CUES_MODE = CUES_MODE),
   trust_timestamps = TRUE,
   format = "qs"
@@ -198,6 +199,45 @@ list(
     name = points_combined,
     command = { combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; combine_points() },
     format = "qs"
+  ),
+
+  # ============================================
+  # Hex grid (dggrid R12) + gridded aggregates
+  # ============================================
+
+  tar_target(
+    name = wld12_grid,
+    command = build_wld12_dggrid(),
+    cue = tar_cue(mode = CUES_MODE)
+  ),
+
+  tar_target(
+    name = points_hex_agg,
+    command = {
+      dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
+      ph <- aggregate_points_to_hex(points_combined, wld12_grid)
+      qs::qsave(ph, "data/aggregate/points_by_hex.qs")
+      ph
+    }
+  ),
+
+  tar_target(
+    name = lines_hex_agg,
+    command = {
+      lh <- aggregate_lines_to_hex(overture_transportation, egm_grid_file, wld12_grid, inc_ctry)
+      qs::qsave(lh, "data/aggregate/lines_by_hex.qs")
+      lh
+    },
+    cue = tar_cue(mode = CUES_MODE)
+  ),
+
+  tar_target(
+    name = hex_gridded_combined,
+    command = {
+      hc <- combine_hex_gridded(points_hex_agg, lines_hex_agg)
+      qs::qsave(hc, "data/aggregate/infrastructure_hex_r12.qs")
+      hc
+    }
   )
 
 )

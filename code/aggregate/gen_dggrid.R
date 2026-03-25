@@ -1,34 +1,17 @@
-library(dggridR)
-library(collapse)
+# Interactive / one-off: build global R12 hex grid (see targets: wld12_grid).
+# Reproducible runs should use targets::tar_make(names = wld12_grid).
+# Run from repository root.
+
+source("code/aggregate/build_wld12_dggrid.R")
+
+library(fastverse)
+fastverse_extend(dggridR)
 library(sf)
 
-# Generate resolution 12 global grid
-wld10kmhex <- dgconstruct(res = 12)
-wld12 <- dgearthgrid(wld10kmhex)
-gc()
+out <- build_wld12_dggrid(
+  water_raster_path = Sys.getenv("WLD12_WATER_RASTER", ""),
+  res = 12L,
+  save_path = "data/dggrid/wld12_grid.qs"
+)
 
-qtable(st_is_valid(wld12))
-
-# Remove cells above water
-water <- terra::rast("/Users/sebastiankrantz/Documents/Data/Landcover/Consensus_reduced_class_12_open_water.tif")
-water_perc <- exactextractr::exact_extract(water, wld12, fun = "mean")
-descr(water_perc)
-wld12 <- ss(wld12, is.finite(water_perc) & water_perc < 100 - 1e-5)
-gc()
-
-# Adding some variables
-setrename(wld12, seqnum = cell)
-settransform(wld12, area_m2 = st_area(geometry))
-settransform(wld12, dgSEQNUM_to_GEO(wld10kmhex, cell))
-data.table::setcolorder(wld12, c("cell", "lon_deg", "lat_deg", "area_m2"))
-
-# Check centroids: takes too long
-# with(wld12, descr(vec(st_centroid(geometry) - cbind(lon_deg, lat_deg))))
-
-# Cell sizes
-descr(wld12$area_m2)
-qtable(unclass(wld12$area_m2) < 95900000)
-# mapview::mapview(wld12[unclass(wld12$area_m2) < 95900000, ])
-
-# Saving
-qs::qsave(wld12, "data/dggrid/wld12.qs")
+message("Cells: ", nrow(out$hex_sf))
