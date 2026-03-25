@@ -1,5 +1,10 @@
 # TODO
 
+## Overture Maps (local outputs)
+
+* Places: `data/overture/places.qs`, `data/overture/categories.qs` (from `download_overture_places()`).
+* Transportation segments (Parquet): `data/overture/transportation/road_segments.parquet`, `rail_segments.parquet`, `water_segments.parquet` (from `download_overture_transportation()`).
+
 * Handy Arc2Meters converter: https://www.opendem.info/arc2meters.html
 * AWS Open Data: https://registry.opendata.aws/, https://github.com/awslabs/open-data-registry
 * HDX: https://data.humdata.org/search?q=
@@ -24,6 +29,8 @@
 * Fiber-optic cables: https://afterfibre.opentelecomdata.org/
   https://opentelecomdata.org/ has more data: https://github.com/open-telecom-data
   https://manypossibilities.net/afterfibre/
+  
+* Energy: https://energydata.info/ (Investigate! Sharada says it has all the energy data)
   
 * See also ITU Infrastructure Connectivity Map: https://bbmaps.itu.int/bbmaps/
 

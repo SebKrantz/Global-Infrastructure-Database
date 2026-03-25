@@ -86,6 +86,13 @@ list(
     cue = tar_cue(mode = CUES_MODE)
   ),
 
+  tar_target(
+    name = overture_transportation,
+    command = download_overture_transportation(overture_latest_release),
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
+  ),
+
   # ============================================
   # Foursquares Pipeline
   # ============================================
