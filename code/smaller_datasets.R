@@ -161,6 +161,49 @@ fetch_EGM_grid <- function() {
   dest
 }
 
+# Zenodo concept 7466757 -> latest OGIM GeoPackage
+# https://doi.org/10.5281/zenodo.7466757
+fetch_OGIM <- function() {
+
+  dest <- "data/OGIM/OGIM.gpkg"
+  if (isTRUE(CUES_MODE == "never") && file.exists(dest)) return(dest)
+
+  rec <- jsonlite::fromJSON("https://zenodo.org/api/records/7466757/versions/latest")
+  is_gpkg <- grepl("\\.gpkg$", rec$files$key, ignore.case = TRUE)
+  row <- rec$files[is_gpkg, , drop = FALSE]
+  if (nrow(row) != 1L) {
+    stop("Zenodo OGIM: expected exactly one .gpkg in latest version, found ", nrow(row))
+  }
+  url <- row$links$self
+  if (length(url) != 1L || !nzchar(url)) {
+    stop("Zenodo OGIM: missing download URL for GeoPackage")
+  }
+
+  dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
+  oldopt <- options(timeout = max(10000, getOption("timeout")))
+  on.exit(options(oldopt), add = TRUE)
+
+  download.file(url, destfile = dest, mode = "wb", method = "curl")
+
+  dest
+}
+
+ogim_gpkg_path <- function() {
+  preferred <- "data/OGIM/OGIM.gpkg"
+  if (file.exists(preferred)) {
+    return(preferred)
+  }
+  legacy <- list.files("data/OGIM", pattern = "^OGIM_.*\\.gpkg$", full.names = TRUE)
+  if (length(legacy) == 1L) {
+    return(legacy)
+  }
+  stop(
+    "OGIM GeoPackage not found at data/OGIM/OGIM.gpkg. ",
+    "Run fetch_OGIM() or tar_make(names = ogim_gpkg_file), ",
+    "or place exactly one OGIM_*.gpkg in data/OGIM/."
+  )
+}
+
 # https://gee-community-catalog.org/projects/tzero/
 load_solar_assets <- function() {
   
@@ -177,15 +220,18 @@ load_global_power_map <- function() {
   
 } 
 
-# Oil and Gas Infrastructure Mapping (OGIM) Database (v2.7)
+# Oil and Gas Infrastructure Mapping (OGIM); latest from Zenodo via fetch_OGIM()
 # https://doi.org/10.5281/zenodo.7466757
 load_OGIM <- function() {
-  
-  layers <- sf::st_layers("data/OGIM/OGIM_v2.7.gpkg")
+
+  path <- ogim_gpkg_path()
+
+  layers <- sf::st_layers(path) |>
+        fsubset(!layer_name %like% "Basins$|Fields$|Blocks|Pipelines$")
   
   res <- sapply(layers$name, function(x) {
     
-    d <- sf::st_read("data/OGIM/OGIM_v2.7.gpkg", layer = x) |> 
+    d <- sf::st_read(path, layer = x) |> 
       janitor::clean_names() 
     
     if(!any(names(d) %like% "latitude")) {

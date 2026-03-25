@@ -161,6 +161,17 @@ list(
     cue = tar_cue(mode = CUES_MODE)
   ),
 
+  # ============================================
+  # Smaller Datasets: OGIM (Zenodo)
+  # ============================================
+
+  tar_target(
+    name = ogim_gpkg_file,
+    command = fetch_OGIM(),
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
+  ),
+
   # # ============================================
   # # Smaller Datasets: WPI (World Port Index)
   # # ============================================
@@ -197,7 +208,7 @@ list(
   
   tar_target(
     name = points_combined,
-    command = { combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; combine_points() },
+    command = { combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file; combine_points() },
     format = "qs"
   ),
 
