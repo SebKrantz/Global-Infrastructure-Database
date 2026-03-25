@@ -1,0 +1,39 @@
+Package: globalinfrastructuredatabase
+Type: Project
+Title: Global Infrastructure Database Pipeline
+Version: 0.0.1
+Authors@R: person("Sebastian", "Krantz", role = c("aut", "cre"))
+Description: Targets-based pipeline to fetch, process, harmonize, and aggregate
+    global infrastructure datasets.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 4.1.0)
+Imports:
+    collapse,
+    countrycode,
+    data.table,
+    DBI,
+    dggridR,
+    duckdb,
+    exactextractr,
+    fastverse,
+    geojsonsf,
+    geohashTools,
+    httr,
+    janitor,
+    jsonlite,
+    osmclass,
+    qs,
+    readxl,
+    rnaturalearth,
+    rvest,
+    s2,
+    sf,
+    targets,
+    terra,
+    wbstats
+Suggests:
+    ooklaOpenDataR,
+    zoo
