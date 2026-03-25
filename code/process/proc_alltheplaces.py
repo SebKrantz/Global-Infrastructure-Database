@@ -8,7 +8,7 @@ extract_path = os.path.splitext(zip_path)[0]
 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
     zip_ref.extractall(extract_path)
 # Now delete output.zip
-os.remove(zip_path)
+# os.remove(zip_path)
 
 # Path to the directory containing the .geojson files
 base_path = 'data/alltheplaces'

@@ -41,7 +41,7 @@ combine_points <- function() {
   ### Open Street Map ------------------------------------------------------------
   #
   
-  OSM_points <- qread("data/osm/points.qs")
+  OSM_points <- qread("data/OSM/points.qs")
   
   OSM_points_prep <- OSM_points |> fcompute(
     id = paste0("OSM_node_", osm_id),
@@ -65,7 +65,7 @@ combine_points <- function() {
   if(any_duplicated(OSM_points_prep$id)) stop("OSM: Duplicated ids")
   rm(OSM_points); gc()
   
-  OSM_multipolygons <- qread("data/osm/multipolygons.qs")
+  OSM_multipolygons <- qread("data/OSM/multipolygons.qs")
   
   OSM_multipolygons_prep <- OSM_multipolygons |> fcompute(
     id = iif(is.na(osm_id), paste0("OSM_way_", osm_way_id), paste0("OSM_node_", osm_id)),

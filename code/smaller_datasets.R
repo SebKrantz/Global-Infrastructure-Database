@@ -165,7 +165,7 @@ fetch_EGM_grid <- function() {
 load_solar_assets <- function() {
   
   # fread("data/TZ-SAM_Solar Asset Mapper - Q1 2025/tz-sam-runs_2025-Q1_outputs_external_analysis_polygons.csv")
-  fread("/Users/sebastiankrantz/Documents/World Bank/Global-Infrastructure-Database/data/SAM/TZ-SAM_Solar Asset Mapper - Q4 2025/2025-Q4_analysis_polygons.csv")
+  fread("data/SAM/TZ-SAM_Solar Asset Mapper - Q4 2025/2025-Q4_analysis_polygons.csv")
   
 }
 

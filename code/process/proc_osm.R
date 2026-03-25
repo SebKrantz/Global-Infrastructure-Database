@@ -249,6 +249,6 @@ combine_osm_proc <- function(proc_osm_dir = "data/OSM/processed") {
   qs::qsave(multipolygons, "data/OSM/multipolygons.qs"); rm(multipolygons); gc()
   
 
-  list(points = "data/OSM/points.qs", lines = "data/OSM/lines.qs", multipolygons = "data/OSM/multipolygons.qs")
+  c(points = "data/OSM/points.qs", lines = "data/OSM/lines.qs", multipolygons = "data/OSM/multipolygons.qs")
   
 }
