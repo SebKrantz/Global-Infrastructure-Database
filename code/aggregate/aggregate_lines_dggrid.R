@@ -88,6 +88,35 @@ load_egm_lines_dt <- function(gpkg_path) {
   data.table::data.table(line_class = x$line_class, geom = g)
 }
 
+load_ogim_pipeline_lines_dt <- function(gpkg_path) {
+  if (!file.exists(gpkg_path)) {
+    stop("load_ogim_pipeline_lines_dt: file not found: ", gpkg_path)
+  }
+  layer <- "Oil_Natural_Gas_Pipelines"
+  lay <- sf::st_layers(gpkg_path)
+  if (!layer %in% lay$name) {
+    stop(
+      "load_ogim_pipeline_lines_dt: layer ", layer, " not in ",
+      gpkg_path, " (available: ", paste(lay$name, collapse = ", "), ")"
+    )
+  }
+  sf_i <- sf::st_read(gpkg_path, layer = layer, quiet = TRUE)
+  if (!nrow(sf_i)) {
+    e <- s2::as_s2_geography(sf::st_sfc(crs = 4326))
+    return(data.table::data.table(line_class = character(0), geom = e))
+  }
+  gt <- unique(as.character(sf::st_geometry_type(sf_i)))
+  if (!any(gt %in% c("LINESTRING", "MULTILINESTRING"))) {
+    stop("load_ogim_pipeline_lines_dt: layer ", layer, " has no line geometries")
+  }
+  sf_i <- sf::st_transform(sf_i, 4326)
+  sf_i <- sf::st_zm(sf_i, drop = TRUE, warn = FALSE)
+  sf_i <- sf::st_cast(sf_i, "MULTILINESTRING", warn = FALSE)
+  sf_i$line_class <- "ogim_oil_natural_gas_pipelines"
+  g <- s2::as_s2_geography(sf::st_geometry(sf_i))
+  data.table::data.table(line_class = sf_i$line_class, geom = g)
+}
+
 tiered_line_union_dt <- function(x, group_cols = character(0)) {
   x <- data.table::as.data.table(x)
   if (!nrow(x)) {
@@ -143,17 +172,20 @@ merge_line_hex_tables <- function(base, add) {
   collapse::join(base, add, on = "cell", how = "full")
 }
 
-#' Aggregate Overture transportation segments and EGM power lines to hex cell line lengths.
+#' Aggregate Overture transportation segments, EGM power lines, and OGIM pipelines
+#' to hex cell line lengths.
 #'
 #' @param overture_transport_files Character vector of parquet paths (from
 #'   \code{download_overture_transportation()}).
 #' @param egm_grid_file Path to \code{grid.gpkg}.
+#' @param ogim_gpkg_file Path to OGIM GeoPackage (e.g. \code{data/OGIM/OGIM.gpkg}).
 #' @param wld12_grid_list Output of \code{build_wld12_dggrid()}.
 #' @param inc_ctry Income-country table with \code{iso3c} (for bbox clip via rnaturalearth).
 #' @return \code{data.table} with \code{cell} and \code{*_len} columns (meters).
 aggregate_lines_to_hex <- function(
     overture_transport_files,
     egm_grid_file,
+    ogim_gpkg_file,
     wld12_grid_list,
     inc_ctry) {
 
@@ -210,6 +242,12 @@ aggregate_lines_to_hex <- function(
   egm <- load_egm_lines_dt(egm_grid_file)
   egm_m <- tiered_line_union_dt(egm, "line_class")
   out <- merge_line_hex_tables(out, hex_lengths_from_merged(egm_m, "line_class", hex_s2))
+
+  ogim <- load_ogim_pipeline_lines_dt(ogim_gpkg_file)
+  if (nrow(ogim)) {
+    ogim_m <- tiered_line_union_dt(ogim, "line_class")
+    out <- merge_line_hex_tables(out, hex_lengths_from_merged(ogim_m, "line_class", hex_s2))
+  }
 
   nlen <- grep("_len$", names(out), value = TRUE)
   for (nm in nlen) {

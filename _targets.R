@@ -235,7 +235,9 @@ list(
   tar_target(
     name = lines_hex_agg,
     command = {
-      lh <- aggregate_lines_to_hex(overture_transportation, egm_grid_file, wld12_grid, inc_ctry)
+      lh <- aggregate_lines_to_hex(
+        overture_transportation, egm_grid_file, ogim_gpkg_file, wld12_grid, inc_ctry
+      )
       qs::qsave(lh, "data/aggregate/lines_by_hex.qs")
       lh
     },
