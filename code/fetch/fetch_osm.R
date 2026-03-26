@@ -7,8 +7,8 @@ get_wb_income_groups <- function() {
     fsubset(!is.na(income_level_iso3c), iso3c, country, region, income_level_iso3c)
 
   # Retrieve the most recent GNI per capita data for each country
-  gni_data <- wbstats::wb_data("NY.GDP.PCAP.CD") |>
-    fsubset(!is.na(NY.GDP.PCAP.CD), iso3c, GNI = NY.GDP.PCAP.CD, year = date) |>
+  gni_data <- wbstats::wb_data("NY.GNP.PCAP.CD") |>
+    fsubset(!is.na(NY.GNP.PCAP.CD), iso3c, GNI = NY.GNP.PCAP.CD, year = date) |>
     fslice(iso3c, how = "max", order.by = year)
   
   # Merge the two datasets by country code
@@ -67,15 +67,24 @@ download_geofabrik_countries <- function(ctry) {
   on.exit(options(oldopt))
   dir.create("data/OSM/raw", recursive = TRUE, showWarnings = FALSE)
   
+  failed <- character(0)
   for (c in seq_row(ctry)) {
     Sys.sleep(1)
     country <- ss(ctry, c)
     message("Downloading ", country$country_geo, " data from ", country$link)
-    download.file(country$link, paste0("data/OSM/raw/", basename(country$link)), mode = "wb")
+    tryCatch(
+      download.file(country$link, paste0("data/OSM/raw/", basename(country$link)), mode = "wb"),
+      error = function(e) {
+        warning("Failed to download ", country$country_geo, ": ", e$message)
+        failed <<- c(failed, country$country_geo)
+      }
+    )
     if(c %% 10 == 0) Sys.sleep(10)
   }
-  
-  if(length(list.files("data/OSM/raw")) < nrow(ctry)) {
+
+  if (length(failed)) {
+    warning("Failed downloads (", length(failed), "): ", paste(failed, collapse = ", "))
+  } else if (length(list.files("data/OSM/raw")) < nrow(ctry)) {
     warning("Some files were not downloaded")
   }
   
