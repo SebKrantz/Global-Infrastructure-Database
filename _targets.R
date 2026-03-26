@@ -139,14 +139,23 @@ point_fetch_targets <- if (POINT_FETCHING) list(
   # AllThePlaces Pipeline
   tar_target(
     name = alltheplaces_zip,
-    command = { system("python3 code/fetch/fetch_alltheplaces.py"); "data/alltheplaces/output.zip" },
+    command = {
+      rc <- system("python3 code/fetch/fetch_alltheplaces.py")
+      if (rc != 0L) stop("fetch_alltheplaces.py exited with status ", rc)
+      "data/alltheplaces/output.zip"
+    },
     format = "file",
     cue = tar_cue(mode = CUES_MODE)
   ),
 
   tar_target(
     name = alltheplaces_csv,
-    command = { alltheplaces_zip; system("python3 code/process/proc_alltheplaces.py"); "data/alltheplaces/alltheplaces.csv" },
+    command = {
+      alltheplaces_zip
+      rc <- system("python3 code/process/proc_alltheplaces.py")
+      if (rc != 0L) stop("proc_alltheplaces.py exited with status ", rc)
+      "data/alltheplaces/alltheplaces.csv"
+    },
     format = "file",
     cue = tar_cue(mode = CUES_MODE)
   ),

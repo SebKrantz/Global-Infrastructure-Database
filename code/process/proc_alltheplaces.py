@@ -27,7 +27,7 @@ for filename in os.listdir(folder_path):
         try:
             with open(file_path, 'r') as file:
                 data = json.load(file)
-        except:
+        except Exception:
             print(filename, "could not be loaded")
             continue
         # Check if the file contains features
