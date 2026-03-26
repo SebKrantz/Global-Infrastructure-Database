@@ -240,8 +240,14 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
   
   tar_target(
     name = points_combined,
-    command = { combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file; combine_points() },
-    format = "qs"
+    command = {
+      combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file
+      dir.create("data/combined", recursive = TRUE, showWarnings = FALSE)
+      out <- "data/combined/points_combined.qs"
+      qs::qsave(combine_points(), out)
+      out
+    },
+    format = "file"
   )
 ) else list()
 
@@ -263,10 +269,13 @@ point_aggregation_targets <- if (POINT_AGGREGATION) list(
     name = points_hex_agg,
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
-      ph <- aggregate_points_to_hex(points_combined, wld12_grid)
-      qs::qsave(ph, "data/aggregate/points_by_hex.qs")
-      ph
+      ph <- aggregate_points_to_hex(qs::qread(points_combined), wld12_grid)
+      out <- "data/aggregate/points_by_hex.qs"
+      qs::qsave(ph, out)
+      out
     }
+    ,
+    format = "file"
   )
 ) else list()
 
@@ -278,19 +287,24 @@ line_aggregation_targets <- if (LINE_AGGREGATION) list(
       lh <- aggregate_lines_to_hex(
         overture_transportation, egm_grid_file, ogim_gpkg_file, wld12_grid, inc_ctry
       )
-      qs::qsave(lh, "data/aggregate/lines_by_hex.qs")
-      lh
+      out <- "data/aggregate/lines_by_hex.qs"
+      qs::qsave(lh, out)
+      out
     },
+    format = "file",
     cue = tar_cue(mode = CUES_MODE)
   ),
   tar_target(
     name = hex_gridded_combined,
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
-      hc <- combine_hex_gridded(points_hex_agg, lines_hex_agg)
-      qs::qsave(hc, "data/aggregate/infrastructure_hex_r12.qs")
-      hc
+      hc <- combine_hex_gridded(qs::qread(points_hex_agg), qs::qread(lines_hex_agg))
+      out <- "data/aggregate/infrastructure_hex_r12.qs"
+      qs::qsave(hc, out)
+      out
     }
+    ,
+    format = "file"
   )
 ) else list()
 
