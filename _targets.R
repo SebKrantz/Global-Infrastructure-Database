@@ -255,7 +255,10 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
 aggregation_common_targets <- if (ANY_AGGREGATION) list(
   tar_target(
     name = wld12_grid,
-    command = get_or_build_wld12_dggrid(),
+    command = {
+      get_or_build_wld12_dggrid()
+      wld12_grid_cache_path()
+    },
     format = "file",
     cue = tar_cue(mode = CUES_MODE)
   )
@@ -270,7 +273,7 @@ point_aggregation_targets <- if (POINT_AGGREGATION) list(
     name = points_hex_agg,
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
-      ph <- aggregate_points_to_hex(qs::qread(points_combined), wld12_grid)
+      ph <- aggregate_points_to_hex(qs::qread(points_combined), qs::qread(wld12_grid))
       out <- "data/aggregate/points_by_hex.qs"
       qs::qsave(ph, out)
       out
@@ -286,7 +289,7 @@ line_aggregation_targets <- if (LINE_AGGREGATION) list(
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
       lh <- aggregate_lines_to_hex(
-        overture_transportation, egm_grid_file, ogim_gpkg_file, wld12_grid, inc_ctry
+        overture_transportation, egm_grid_file, ogim_gpkg_file, qs::qread(wld12_grid), inc_ctry
       )
       out <- "data/aggregate/lines_by_hex.qs"
       qs::qsave(lh, out)
