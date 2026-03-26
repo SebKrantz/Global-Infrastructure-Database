@@ -24,7 +24,6 @@ tar_option_set(
   packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb",
                "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr", "jsonlite",
                "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse", "data.table"),
-  globals = list(CUES_MODE = CUES_MODE, PIPELINE_FLAGS = PIPELINE_FLAGS),
   trust_timestamps = TRUE,
   format = "qs"
 )
@@ -39,6 +38,7 @@ POINT_PROCESSING <- isTRUE(PIPELINE_FLAGS$point_processing)
 POINTS_COMBINATION <- isTRUE(PIPELINE_FLAGS$points_combination)
 POINT_AGGREGATION <- isTRUE(PIPELINE_FLAGS$point_aggregation)
 LINE_AGGREGATION <- isTRUE(PIPELINE_FLAGS$line_aggregation)
+ANY_AGGREGATION <- POINT_AGGREGATION || LINE_AGGREGATION
 
 # Fail-fast validation for stage dependencies:
 if (POINT_PROCESSING && !POINT_FETCHING) {
@@ -169,11 +169,21 @@ point_fetch_targets <- if (POINT_FETCHING) list(
   #   command = fetch_WPI(),
   #   format = "file"
   # ),
+  #
+  # tar_target(
+  #   name = wpi_data,
+  #   command = { wpi_file; load_WPI() }
+  # ),
   # # Smaller Datasets: OOKLA (Internet Speeds)
   # tar_target(
   #   name = ookla_files,
   #   command = fetch_OOKLA(),
   #   format = "file"
+  # ),
+  #
+  # tar_target(
+  #   name = ookla_data,
+  #   command = { ookla_files; load_OOKLA() }
   # ),
 ) else list()
 
@@ -221,16 +231,19 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
   )
 ) else list()
 
+aggregation_common_targets <- if (ANY_AGGREGATION) list(
+  tar_target(
+    name = wld12_grid,
+    command = get_or_build_wld12_dggrid(),
+    format = "file",
+    cue = tar_cue(mode = CUES_MODE)
+  )
+) else list()
+
 point_aggregation_targets <- if (POINT_AGGREGATION) list(
   # ============================================
   # Hex grid (dggrid R12) + gridded aggregates
   # ============================================
-
-  tar_target(
-    name = wld12_grid,
-    command = build_wld12_dggrid(),
-    cue = tar_cue(mode = CUES_MODE)
-  ),
 
   tar_target(
     name = points_hex_agg,
@@ -275,6 +288,7 @@ c(
   lines_fetch_targets,
   point_processing_targets,
   points_combination_targets,
+  aggregation_common_targets,
   point_aggregation_targets,
   line_aggregation_targets
 )

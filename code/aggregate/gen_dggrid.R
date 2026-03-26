@@ -1,17 +1,26 @@
-# Interactive / one-off: build global R12 hex grid (see targets: wld12_grid).
-# Reproducible runs should use targets::tar_make(names = wld12_grid).
-# Run from repository root.
+# Grid cache helpers for pipeline and interactive use.
+# No code in this file executes on source().
 
-source("code/aggregate/build_wld12_dggrid.R")
+wld12_grid_cache_path <- function() {
+  "data/dggrid/wld12_grid.qs"
+}
 
-library(fastverse)
-fastverse_extend(dggridR)
-library(sf)
+get_or_build_wld12_dggrid <- function(
+    cache_path = wld12_grid_cache_path(),
+    water_raster_path = Sys.getenv("WLD12_WATER_RASTER", ""),
+    res = 12L) {
+  if (file.exists(cache_path)) {
+    return(qs::qread(cache_path))
+  }
+  build_wld12_dggrid(
+    water_raster_path = water_raster_path,
+    res = res,
+    save_path = cache_path
+  )
+}
 
-out <- build_wld12_dggrid(
-  water_raster_path = Sys.getenv("WLD12_WATER_RASTER", ""),
-  res = 12L,
-  save_path = "data/dggrid/wld12_grid.qs"
-)
-
-message("Cells: ", nrow(out$hex_sf))
+build_wld12_dggrid_interactive <- function() {
+  out <- get_or_build_wld12_dggrid()
+  message("Cells: ", nrow(out$hex_sf))
+  invisible(out)
+}
