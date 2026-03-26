@@ -1,6 +1,20 @@
 # Global Infrastructure Database Pipeline
 # See: https://books.ropensci.org/targets/walkthrough.html
 
+# Bootstrap required R packages (install only missing ones).
+REQUIRED_PACKAGES <- c(
+  "fastverse", "targets", "wbstats", "rvest", "countrycode", "sf", "s2", "osmclass",
+  "DBI", "duckdb", "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr",
+  "jsonlite", "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse",
+  "data.table"
+)
+
+missing_packages <- REQUIRED_PACKAGES[!vapply(REQUIRED_PACKAGES, requireNamespace, TRUE, quietly = TRUE)]
+
+if (length(missing_packages)) {
+  install.packages(missing_packages, repos = "https://cloud.r-project.org")
+}
+
 # Load packages required to define the pipeline:
 library(fastverse)
 library(targets)
