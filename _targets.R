@@ -24,7 +24,7 @@ fastverse_conflicts()
 # Set to "never" to skip re-running expensive fetch/process targets and skip
 # re-downloading files that already exist inside fetcher functions.
 # Set to "thorough" to re-run all targets and re-fetch all data.
-CUES_MODE <- "never"
+CUES_MODE <- "thorough"
 PIPELINE_FLAGS <- list(
   point_fetching = TRUE,
   lines_fetching = TRUE,
