@@ -281,7 +281,7 @@ line_aggregation_targets <- if (LINE_AGGREGATION) list(
 ) else list()
 
 # Pipeline targets:
-c(
+pipeline_targets <- c(
   base_targets,
   overture_meta_targets,
   point_fetch_targets,
@@ -292,3 +292,5 @@ c(
   point_aggregation_targets,
   line_aggregation_targets
 )
+
+pipeline_targets
