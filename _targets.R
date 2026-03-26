@@ -243,10 +243,7 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
     name = points_combined,
     command = {
       combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file
-      dir.create("data/combined", recursive = TRUE, showWarnings = FALSE)
-      out <- "data/combined/points_combined.qs"
-      qs::qsave(combine_points(), out)
-      out
+      combine_points()
     },
     format = "file"
   )

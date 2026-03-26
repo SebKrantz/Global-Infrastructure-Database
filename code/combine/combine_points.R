@@ -34,7 +34,7 @@ classify_overture_foursquares <- function(source) {
 }
 
 
-combine_points <- function() {
+combine_points <- function(out = "data/combined/points_combined.qs") {
   
   
   #
@@ -605,7 +605,7 @@ combine_points <- function() {
   ### Combine all datasets -----------------------------------------------------------
   #
   
-  rowbind(
+  points_combined <- rowbind(
     OSM_points = OSM_points_prep,
     OSM_multipolygons = OSM_multipolygons_prep,
     OVP = OVP_prep,
@@ -624,5 +624,9 @@ combine_points <- function() {
     OZM = OZM_prep,
     idcol = "source"
   )
+  
+  dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)
+  qs::qsave(points_combined, out)
+  out
 }
 
