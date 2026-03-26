@@ -2,11 +2,16 @@
 
 get_foursquares_s3_paths <- function() {
   
-  rvest::read_html("https://docs.foursquare.com/data-products/docs/access-fsq-os-places") |>
+  s3_paths <- rvest::read_html("https://docs.foursquare.com/data-products/docs/access-fsq-os-places") |>
     rvest::html_nodes("code, pre") |>  # Adjust selectors based on actual HTML structure
     rvest::html_text() |>
-    grep(pattern = "s3://", value = TRUE) |>  # Filter for S3 paths
-    extract(1:2)
+    grep(pattern = "s3://", value = TRUE)  # Filter for S3 paths
+  
+  if (length(s3_paths) == 0L) {
+    stop("No Foursquare S3 paths found on the docs page.")
+  }
+  
+  s3_paths[seq_len(min(2L, length(s3_paths)))]
   
 }
 
