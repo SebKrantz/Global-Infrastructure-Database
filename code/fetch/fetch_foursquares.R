@@ -2,16 +2,22 @@
 
 get_foursquares_s3_paths <- function() {
   
-  s3_paths <- rvest::read_html("https://docs.foursquare.com/data-products/docs/access-fsq-os-places") |>
-    rvest::html_nodes("code, pre") |>  # Adjust selectors based on actual HTML structure
-    rvest::html_text() |>
-    grep(pattern = "s3://", value = TRUE)  # Filter for S3 paths
+  page_text <- rvest::read_html("https://docs.foursquare.com/data-products/docs/access-fsq-os-places") |>
+    rvest::html_text2()
+  
+  # Extract all S3 URLs even when multiple paths appear in one text block.
+  s3_matches <- regmatches(page_text, gregexpr("s3://[^[:space:]`'\"\\)]+", page_text, perl = TRUE))[[1]]
+  s3_paths <- sub("[,;]+$", "", s3_matches)
+  s3_paths <- sub("\\\\u003c.*$", "", s3_paths)
+  s3_paths <- sub("&#x27.*$", "", s3_paths)
+  s3_paths <- sub("[^A-Za-z0-9./_=:*\\-].*$", "", s3_paths)
+  s3_paths <- unique(s3_paths[nzchar(s3_paths)])
   
   if (length(s3_paths) == 0L) {
     stop("No Foursquare S3 paths found on the docs page.")
   }
   
-  s3_paths[seq_len(min(2L, length(s3_paths)))]
+  s3_paths
   
 }
 
@@ -19,6 +25,17 @@ download_foursquares_places <- function(s3_paths, inc_ctry) {
   
   places_path <- grep("places/parquet", s3_paths, value = TRUE)
   categories_path <- grep("categories/parquet", s3_paths, value = TRUE)
+  
+  if (length(places_path) == 0L) {
+    stop("Could not find a Foursquare places parquet S3 path.")
+  }
+  if (length(categories_path) == 0L) {
+    stop("Could not find a Foursquare categories parquet S3 path.")
+  }
+  
+  places_path <- grep("/$", places_path, value = TRUE)[[1]]
+  categories_path <- grep("/$", categories_path, value = TRUE)[[1]]
+  
   dir.create("data/foursquares", recursive = TRUE, showWarnings = FALSE)
   
   # Connect to DuckDB
