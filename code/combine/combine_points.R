@@ -253,7 +253,7 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
   GIP <- load_GIP()
   
   # Deduplication
-  GIP |> fsubset(fduplicated(geohashTools::gh_encode(latitude, longitude, precision = 15), all = TRUE))
+  # GIP |> fsubset(fduplicated(geohashTools::gh_encode(latitude, longitude, precision = 15), all = TRUE))
   GIP %<>% fgroup_by(gem_location_id, status) %>% collapg(w = capacity_mw) %>% 
     fsubset(status %in% c("operating", "construction", "inactive", "mothballed"))
   
@@ -468,8 +468,8 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     name = name_display,
     address = paste(country, state_prov, sep = ", "),
     source_orig = NA_character_,
-    main_cat = "power",
-    main_tag = "ogim_layer",
+    main_cat = "mining",
+    main_tag = "ogim_oil_gas_layer",
     main_tag_value = ogim_layer,
     alt_cats = NA_character_,
     alt_tags_values = NA_character_,
@@ -597,7 +597,7 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     value = as.numeric(size_hectares)
   ) 
   
-  if (any_duplicated(OZM_prep$id)) stop("PW: Duplicated ids")
+  if (any_duplicated(OZM_prep$id)) stop("OZM: Duplicated ids")
   
   rm(OZM); gc()
 

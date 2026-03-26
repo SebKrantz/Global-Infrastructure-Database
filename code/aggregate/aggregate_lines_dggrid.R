@@ -158,7 +158,16 @@ hex_lengths_from_merged <- function(merged_dt, class_col, hex_s2_dt) {
   }
   for (i in seq_len(nrow(merged_dt))) {
     gi <- merged_dt$geom[i]
-    wi <- which(s2::s2_intersects(hex_s2_dt$geometry, gi))
+    # Pre-filter hex candidates using bounding box before exact intersection
+    bb <- s2::s2_bounds_rect(gi)
+    cands <- which(s2::s2_intersects_box(
+      hex_s2_dt$geometry,
+      ymin = bb$lat_lo, xmin = bb$lng_lo,
+      ymax = bb$lat_hi, xmax = bb$lng_hi
+    ))
+    if (!length(cands)) next
+    wi_sub <- which(s2::s2_intersects(hex_s2_dt$geometry[cands], gi))
+    wi <- cands[wi_sub]
     if (!length(wi)) next
     leni <- s2::s2_length(s2::s2_intersection(hex_s2_dt$geometry[wi], gi))
     data.table::set(out, i = wi, j = col_names[i], value = leni)
