@@ -115,99 +115,111 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
 
     layers <- sf::st_layers(file_gpkg)
     N <- layers$features[layers$name == "multipolygons"]
-    int <- seq(0L, N, 1e7L)
-    multipolygons <- vector("list", length(int))
-    # multipolygons_ncl <- vector("list", length(int))
 
-    for (i in seq_along(int)) {
+    if (!length(N)) {
+      message("No multipolygons layer in ", file_gpkg, ", skipping multipolygons.")
+    } else {
 
-      if(length(int) > 1) {
-        cat("\nReading Multipolygons Chunk", i, "\n")
-        temp <- sf::st_read(file_gpkg,
-                        query = paste("SELECT * FROM multipolygons LIMIT 10000000 OFFSET", int[i]))
-        print(fnrow(temp))
-        gc()
-      } else {
-        temp <- sf::st_read(file_gpkg, layer = "multipolygons", quiet = TRUE)
+      int <- seq(0L, N, 1e7L)
+      multipolygons <- vector("list", length(int))
+      # multipolygons_ncl <- vector("list", length(int))
+
+      for (i in seq_along(int)) {
+
+        if(length(int) > 1) {
+          cat("\nReading Multipolygons Chunk", i, "\n")
+          temp <- sf::st_read(file_gpkg,
+                          query = paste("SELECT * FROM multipolygons LIMIT 10000000 OFFSET", int[i]))
+          print(fnrow(temp))
+          gc()
+        } else {
+          temp <- sf::st_read(file_gpkg, layer = "multipolygons", quiet = TRUE)
+        }
+        message("Multipolygons Size: ", format(object.size(temp), "Mb"))
+
+        # Removing Administrative or natural features...
+        temp %<>%
+          ftransformv(c(osm_id, osm_way_id), as.double) %>%
+          fsubset(boundary %!in% c("administrative", "municipality", "political") &
+                  is.na(natural) & is.na(geological) & !(is.na(osm_id) & is.na(osm_way_id)))
+
+        # Classifying
+        temp_class <- osmclass::osm_classify(temp, osmclass::osm_point_polygon_class_det)
+        cl <- which(temp_class$classified)
+        # # Classification conflicts
+        # temp_class |> ss(cl, check = FALSE) |>
+        #   fsubset(!is.na(alt_cats) & main_cat != alt_cats) |> fcount() |> roworder(-N) # |> View()
+        # multipolygons_ncl[[i]] <- ss(atomic_elem(temp), -cl) |> qDT()
+        temp %<>% ss(cl, check = FALSE)
+        temp_class %<>% ss(cl, 2:fncol(temp_class), check = FALSE)
+
+        # Other tags...
+        save_tags <- .c(ref, name, description, operator, capacity, access, opening_hours, start_date)
+        temp_tags <- osmclass::osm_tags_df(temp, save_tags, na.prop = 0)
+        temp %<>% fselect(osm_id, osm_way_id) %>%
+          add_vars(temp_class, temp_tags)
+
+        # Ensuring valid geometries
+        tryCatch(temp %<>% sf::st_make_valid(), error = function(e) warning("failure to make valid"))
+        tryCatch(temp %<>% ss(sf::st_is_valid(.)), error = function(e) warning("failure to sort out invalid"))
+        settransform(temp, geom = sf::st_as_sfc(unclass(geom)))
+        if(sf::st_crs(temp)$input != "WGS 84") sf::st_crs(temp) <- sf::st_crs(4326) # Making WGS 84
+
+        # Computing area
+        temp <- tryCatch(fmutate(temp, area = sf::st_area(geom)), error = function(e) warning("failed to compute area"))
+
+        # Computing centroid
+        temp <- tryCatch({
+
+            temp |> sf::st_centroid() |>
+              ftransform(mctl(sf::st_coordinates(geom), names = TRUE)) |>
+              frename(X = lon, Y = lat) |>
+              fmutate(geom = NULL) |> qDT()
+
+          }, error = function(e) {
+            warning("manually computing centroid")
+
+            # Simple centroid function in case st_centroid fails
+            simp_centroid <- function(x) {
+              if(!is.list(x) || length(x) == 0L) return(if(is.numeric(x) && length(x) == 2L) x else NULL) else
+                if(all(vapply(x, is.matrix, TRUE)) && all(vapply(x, ncol, 1L) == 2L))
+                  return(pmean(lapply(x, fmean.matrix))) else simp_centroid(x[[1L]])
+            }
+
+            temp |>
+              fmutate(geom = lapply(geom, simp_centroid)) |>
+              fsubset(vlengths(geom) == 2L) |>
+              ftransform(setNames(transpose(geom), c("lon", "lat"))) |>
+              fmutate(geom = NULL) |> qDT()
+          })
+
+        multipolygons[[i]] <- tfmv(temp, is_categorical, qF)
       }
-      message("Multipolygons Size: ", format(object.size(temp), "Mb"))
 
-      # Removing Administrative or natural features...
-      temp %<>%
-        ftransformv(c(osm_id, osm_way_id), as.double) %>%
-        fsubset(boundary %!in% c("administrative", "municipality", "political") &
-                is.na(natural) & is.na(geological) & !(is.na(osm_id) & is.na(osm_way_id)))
+      rm(temp, temp_class, temp_tags); gc()
+      multipolygons <- if(length(int) == 1L) multipolygons[[1]] else rowbind(multipolygons)
 
-      # Classifying
-      temp_class <- osmclass::osm_classify(temp, osmclass::osm_point_polygon_class_det)
-      cl <- which(temp_class$classified)
-      # # Classification conflicts
-      # temp_class |> ss(cl, check = FALSE) |>
-      #   fsubset(!is.na(alt_cats) & main_cat != alt_cats) |> fcount() |> roworder(-N) # |> View()
-      # multipolygons_ncl[[i]] <- ss(atomic_elem(temp), -cl) |> qDT()
-      temp %<>% ss(cl, check = FALSE)
-      temp_class %<>% ss(cl, 2:fncol(temp_class), check = FALSE)
+      # Saving
+      qs::qsave(multipolygons, paste0("data/OSM/processed/", sub(".osm.pbf", "-multipolygons.qs", basename(file))))
 
-      # Other tags...
-      save_tags <- .c(ref, name, description, operator, capacity, access, opening_hours, start_date)
-      temp_tags <- osmclass::osm_tags_df(temp, save_tags, na.prop = 0)
-      temp %<>% fselect(osm_id, osm_way_id) %>%
-        add_vars(temp_class, temp_tags)
+      print(fnrow(multipolygons))
+      message("Multipolygons Final Size: ", format(object.size(multipolygons), "Mb"))
+      rm(multipolygons); gc()
 
-      # Ensuring valid geometries
-      tryCatch(temp %<>% sf::st_make_valid(), error = function(e) warning("failure to make valid"))
-      tryCatch(temp %<>% ss(sf::st_is_valid(.)), error = function(e) warning("failure to sort out invalid"))
-      settransform(temp, geom = sf::st_as_sfc(unclass(geom)))
-      if(sf::st_crs(temp)$input != "WGS 84") sf::st_crs(temp) <- sf::st_crs(4326) # Making WGS 84
+    } # end multipolygons block
 
-      # Computing area
-      temp <- tryCatch(fmutate(temp, area = sf::st_area(geom)), error = function(e) warning("failed to compute area"))
-
-      # Computing centroid
-      temp <- tryCatch({
-
-          temp |> sf::st_centroid() |>
-            ftransform(mctl(sf::st_coordinates(geom), names = TRUE)) |>
-            frename(X = lon, Y = lat) |>
-            fmutate(geom = NULL) |> qDT()
-
-        }, error = function(e) {
-          warning("manually computing centroid")
-
-          # Simple centroid function in case st_centroid fails
-          simp_centroid <- function(x) {
-            if(!is.list(x) || length(x) == 0L) return(if(is.numeric(x) && length(x) == 2L) x else NULL) else
-              if(all(vapply(x, is.matrix, TRUE)) && all(vapply(x, ncol, 1L) == 2L))
-                return(pmean(lapply(x, fmean.matrix))) else simp_centroid(x[[1L]])
-          }
-
-          temp |>
-            fmutate(geom = lapply(geom, simp_centroid)) |>
-            fsubset(vlengths(geom) == 2L) |>
-            ftransform(setNames(transpose(geom), c("lon", "lat"))) |>
-            fmutate(geom = NULL) |> qDT()
-        })
-
-      multipolygons[[i]] <- tfmv(temp, is_categorical, qF)
-    }
-
-    rm(temp, temp_class, temp_tags); gc()
-    multipolygons <- if(length(int) == 1L) multipolygons[[1]] else rowbind(multipolygons)
-
-    # Saving
-    qs::qsave(multipolygons, paste0("data/OSM/processed/", sub(".osm.pbf", "-multipolygons.qs", basename(file))))
-
-    print(fnrow(multipolygons))
-    message("Multipolygons Final Size: ", format(object.size(multipolygons), "Mb"))
-    file.remove(file_gpkg);
-    rm(multipolygons); gc()
+    file.remove(file_gpkg)
 
 
     }, error = function(e) warning("Error: ", e$message))
 
   }
 
-  paste0("data/OSM/processed/", sub(".osm.pbf", "-", basename(files)), c("points.qs", "lines.qs", "multipolygons.qs"))
+  as.vector(outer(
+    paste0("data/OSM/processed/", sub(".osm.pbf", "-", basename(files))),
+    c("points.qs", "lines.qs", "multipolygons.qs"),
+    paste0
+  ))
 }
 
 combine_osm_proc <- function(proc_osm_dir = "data/OSM/processed") {
@@ -218,7 +230,7 @@ combine_osm_proc <- function(proc_osm_dir = "data/OSM/processed") {
     return(out_files)
   }
 
-  files <- list.files(proc_osm_dir, pattern = ".qs", full.names = TRUE)
+  files <- list.files(proc_osm_dir, pattern = "\\.qs$", full.names = TRUE)
 
   if(length(files) == 0) {
     stop("No files found in ", proc_osm_dir)
