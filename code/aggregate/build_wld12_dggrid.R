@@ -12,7 +12,7 @@
 #'   same list invisibly after save for use in \code{targets}.
 #' @keywords internal
 build_wld12_dggrid <- function(
-    water_raster_path = Sys.getenv("WLD12_WATER_RASTER", ""),
+    water_raster_path = "data/Landcover/Consensus_reduced_class_12_open_water.tif",
     res = 12L,
     save_path = NULL) {
 
@@ -33,12 +33,12 @@ build_wld12_dggrid <- function(
     gc()
   } else if (length(water_raster_path) && nzchar(as.character(water_raster_path))) {
     stop(
-      "build_wld12_dggrid: WLD12_WATER_RASTER is set but file does not exist: ",
+      "build_wld12_dggrid: water_raster_path file does not exist: ",
       water_raster_path
     )
   } else {
     message(
-      "build_wld12_dggrid: no water raster (set WLD12_WATER_RASTER to filter ocean hexes)"
+      "build_wld12_dggrid: no water raster provided (ocean hexes are not filtered)"
     )
   }
 

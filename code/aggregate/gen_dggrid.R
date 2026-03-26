@@ -7,7 +7,7 @@ wld12_grid_cache_path <- function() {
 
 get_or_build_wld12_dggrid <- function(
     cache_path = wld12_grid_cache_path(),
-    water_raster_path = Sys.getenv("WLD12_WATER_RASTER", ""),
+    water_raster_path = "data/Landcover/Consensus_reduced_class_12_open_water.tif",
     res = 12L) {
   if (file.exists(cache_path)) {
     return(qs::qread(cache_path))
