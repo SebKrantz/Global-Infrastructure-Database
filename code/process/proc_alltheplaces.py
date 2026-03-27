@@ -17,18 +17,18 @@ os.makedirs(base_path, exist_ok=True)
 
 # Initialize an empty list to store the filtered features
 filtered_features = []
+load_errors = 0
 
 # Iterate over the files in the directory
 for filename in os.listdir(folder_path):
     if filename.endswith('.geojson'):
-        print(filename)
         file_path = os.path.join(folder_path, filename)
         # Open and load the geojson file
         try:
             with open(file_path, 'r') as file:
                 data = json.load(file)
         except Exception:
-            print(filename, "could not be loaded")
+            load_errors += 1
             continue
         # Check if the file contains features
         if 'features' in data:
@@ -53,7 +53,9 @@ output_path = os.path.join(base_path, 'alltheplaces.geojson')
 with open(output_path, 'w') as outfile:
     json.dump(filtered_geojson, outfile)
 
-print(f'Filtered GeoJSON saved to {output_path}')
+if load_errors:
+    import sys
+    print(f'Warning: {load_errors} geojson file(s) could not be loaded', file=sys.stderr)
 
 
 # Count occurrence
@@ -112,7 +114,7 @@ output_path = os.path.join(base_path, 'alltheplaces.csv')
 data.to_csv(output_path, index=False)
 
 # Optionally, display the DataFrame
-print(data.head())
+# print(data.head())
 
 # Finally, delete the folder
 import shutil

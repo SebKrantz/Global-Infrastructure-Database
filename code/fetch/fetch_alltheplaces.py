@@ -30,7 +30,6 @@ for link in soup.find_all('a'):
         # Write the file to the specified folder
         with open(download_path, 'wb') as file:
             file.write(file_response.content)
-        print(f'File downloaded to {download_path}')
         break
 else:
-    print('No download link found for output.zip on the website.')
+    raise RuntimeError('No download link found for output.zip on the website.')
