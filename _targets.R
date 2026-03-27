@@ -140,7 +140,7 @@ point_fetch_targets <- if (POINT_FETCHING) list(
   tar_target(
     name = alltheplaces_zip,
     command = {
-      rc <- system("python3 code/fetch/fetch_alltheplaces.py")
+      rc <- system("venv/bin/python code/fetch/fetch_alltheplaces.py")
       if (rc != 0L) stop("fetch_alltheplaces.py exited with status ", rc)
       "data/alltheplaces/output.zip"
     },
@@ -152,7 +152,7 @@ point_fetch_targets <- if (POINT_FETCHING) list(
     name = alltheplaces_csv,
     command = {
       alltheplaces_zip
-      rc <- system("python3 code/process/proc_alltheplaces.py")
+      rc <- system("venv/bin/python code/process/proc_alltheplaces.py")
       if (rc != 0L) stop("proc_alltheplaces.py exited with status ", rc)
       "data/alltheplaces/alltheplaces.csv"
     },
