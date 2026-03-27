@@ -175,10 +175,10 @@ load_OGIM <- function() {
 
   path <- ogim_gpkg_path()
 
-  layers <- sf::st_layers(path) |>
-        fsubset(!layer_name %like% "Basins$|Fields$|Blocks|Pipelines$")
-  
-  res <- sapply(layers$name, function(x) {
+  all_layers <- sf::st_layers(path)$name
+  layers <- all_layers[!grepl("Basins$|Fields$|Blocks|Pipelines$", all_layers)]
+
+  res <- sapply(layers, function(x) {
     
     d <- sf::st_read(path, layer = x) |> 
       janitor::clean_names() 

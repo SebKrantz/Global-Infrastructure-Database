@@ -230,8 +230,8 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     address = mcc_table$country[ckmatch(mcc, mcc_table$mobile_country_code)],
     # description = NA_character_,
     source_orig = NA_character_,
-    main_cat = "communications", 
-    main_tag = "radio", 
+    main_cat = "communications_network",
+    main_tag = "radio",
     main_tag_value = radio,
     alt_cats = NA_character_, 
     alt_tags_values = NA_character_,
@@ -266,8 +266,8 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     address = paste(city, local_area_taluk_county, major_area_prefecture_district,
                     subnational_unit_state_province, country_area, sep = ", "),
     source_orig = gem_wiki_url,
-    main_cat = "power", 
-    main_tag = "plant_type", 
+    main_cat = "power_plant_large",
+    main_tag = "plant_type",
     main_tag_value = type,
     alt_cats = NA_character_, 
     alt_tags_values = NA_character_,
@@ -435,7 +435,7 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     name = NA_character_,
     address = country,
     source_orig = NA_character_,
-    main_cat = "power",
+    main_cat = "power_plant_small",
     main_tag = "plant_type",
     main_tag_value = "solar",
     alt_cats = NA_character_,
@@ -458,7 +458,24 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     rowbind(fill = TRUE)
   OGIM_flat$name_display <- fcoalesce(OGIM_flat$fac_name, OGIM_flat$name)
   OGIM_flat %<>% fsubset(!is.na(latitude) & !is.na(longitude))
-  
+
+  # Per-layer category mapping (extraction → mining, processing → industrial,
+  # pumping/compression → utilities_other, bulk storage → storage)
+  ogim_cat_map <- c(
+    Oil_Natural_Gas_Wells           = "mining",          # wellheads = extraction
+    Equipment_and_Components        = "mining",          # field equipment at production sites
+    Tank_Battery                    = "mining",          # tank groups at well sites
+    Injection_and_Disposal          = "mining",          # injection wells = extraction operations
+    Natural_Gas_Flaring_Detections  = "mining",          # co-located with production
+    Offshore_Platforms              = "mining",          # offshore extraction
+    Gathering_and_Processing        = "industrial",      # gas processing plants
+    Crude_Oil_Refineries            = "industrial",      # OSM: industrial = "refinery"
+    LNG_Facilities                  = "industrial",      # large terminal facilities
+    Natural_Gas_Compressor_Stations = "utilities_other", # OSM: man_made = "pumping_station"
+    Stations_Other                  = "utilities_other", # pump/valve stations
+    Petroleum_Terminals             = "storage"          # OSM: industrial = "oil_storage"
+  )
+
   OGIM_prep <- OGIM_flat |> fcompute(
     id = paste("OGIM", ogim_id,
                geohashTools::gh_encode(latitude, longitude, precision = 15), sep = "_"),
@@ -468,7 +485,7 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     name = name_display,
     address = paste(country, state_prov, sep = ", "),
     source_orig = NA_character_,
-    main_cat = "mining",
+    main_cat = ogim_cat_map[ogim_layer],
     main_tag = "ogim_oil_gas_layer",
     main_tag_value = ogim_layer,
     alt_cats = NA_character_,
@@ -513,7 +530,7 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
     name = name,
     address = paste(country, region, sep = ", "),
     source_orig = NA_character_,
-    main_cat = "communications",
+    main_cat = "communications_network",
     main_tag = "type_infr",
     main_tag_value = type_infr,
     alt_cats = NA_character_,
