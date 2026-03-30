@@ -48,10 +48,10 @@ download_overture_places <- function(latest, inc_ctry) {
   
   # Define the SQL query
   query <- paste0("
-    select 
-        id, 
-        REPLACE(sources[1].dataset, chr(0), '') as source, 
-        strptime(REPLACE(sources[1].update_time, chr(0), ''), '%Y-%m-%dT%H:%M:%S.%fZ') as update_time, 
+    select
+        id,
+        REPLACE(sources[1].dataset, chr(0), '') as source,
+        REPLACE(sources[1].update_time, chr(0), '') as update_time,
         REPLACE(names.primary, chr(0), '') as name, 
         categories.primary as category,
         categories.alternate as category_alt,
