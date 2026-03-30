@@ -22,14 +22,13 @@ for link in soup.find_all('a'):
     if 'output.zip' in link.get('href', ''):
         # Construct the full URL to the file
         download_url = link['href']
-        # Perform a GET request to download the file
-        file_response = requests.get(download_url)
-        file_response.raise_for_status()
-        # Define the download path
+        # Stream download directly to disk to avoid loading 1-2 GB into RAM
         download_path = os.path.join(download_folder, 'output.zip')
-        # Write the file to the specified folder
-        with open(download_path, 'wb') as file:
-            file.write(file_response.content)
+        with requests.get(download_url, stream=True) as file_response:
+            file_response.raise_for_status()
+            with open(download_path, 'wb') as file:
+                for chunk in file_response.iter_content(chunk_size=8 * 1024 * 1024):
+                    file.write(chunk)
         break
 else:
     raise RuntimeError('No download link found for output.zip on the website.')
