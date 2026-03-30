@@ -33,6 +33,7 @@ PIPELINE_FLAGS <- list(
   points_combination = TRUE,
   point_aggregation = TRUE,
   line_aggregation = TRUE
+  alltheplaces = FALSE
 )
 
 # Set target options:
@@ -55,6 +56,7 @@ POINTS_COMBINATION <- isTRUE(PIPELINE_FLAGS$points_combination)
 POINT_AGGREGATION <- isTRUE(PIPELINE_FLAGS$point_aggregation)
 LINE_AGGREGATION <- isTRUE(PIPELINE_FLAGS$line_aggregation)
 ANY_AGGREGATION <- POINT_AGGREGATION || LINE_AGGREGATION
+ATP_ENABLED <- isTRUE(PIPELINE_FLAGS$alltheplaces)
 
 # Fail-fast validation for stage dependencies:
 if (POINT_PROCESSING && !POINT_FETCHING) {
@@ -138,7 +140,7 @@ point_fetch_targets <- if (POINT_FETCHING) list(
     cue = tar_cue(mode = CUES_MODE)
   ),
   # AllThePlaces Pipeline
-  tar_target(
+  if (ATP_ENABLED) tar_target(
     name = alltheplaces_zip,
     command = {
       rc <- system("venv/bin/python code/fetch/fetch_alltheplaces.py")
@@ -149,7 +151,7 @@ point_fetch_targets <- if (POINT_FETCHING) list(
     cue = tar_cue(mode = CUES_MODE)
   ),
 
-  tar_target(
+  if (ATP_ENABLED) tar_target(
     name = alltheplaces_csv,
     command = {
       alltheplaces_zip
@@ -252,8 +254,9 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
   tar_target(
     name = points_combined,
     command = {
-      combined_osm; overture_places; foursquares_places; alltheplaces_csv; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file
-      combine_points()
+      combined_osm; overture_places; foursquares_places; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file
+      if (ATP_ENABLED) alltheplaces_csv
+      combine_points(atp = ATP_ENABLED)
     },
     format = "file"
   )

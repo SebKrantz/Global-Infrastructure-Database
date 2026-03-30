@@ -34,7 +34,7 @@ classify_overture_foursquares <- function(source) {
 }
 
 
-combine_points <- function(out = "data/combined/points_combined.qs") {
+combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE) {
   
   
   #
@@ -159,47 +159,49 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
   #
   ### Alltheplaces ------------------------------------------------------------
   #
-  
-  ATP <- fread("data/alltheplaces/alltheplaces.csv") |> janitor::clean_names()
-  
-  # Deduplication
-  # ATP |> fselect(longitude, latitude, amenity, shop, brand, brand_wikidata, spider) |> fduplicated() |> qtable()
-  ATP %<>% fgroup_by(longitude, latitude, ref, brand_wikidata) %>% fmode()
-  # ATP |> fcompute(am = pfirst(amenity, shop), keep = .c(longitude, latitude, brand_wikidata, ref)) |> fduplicated() |> qtable()
-  
-  ATP$other_tags = ""
-  ATP_class <- osm_classify(ATP, osm_point_polygon_class_det)
-  # qtable(ATP_class$classified)
-  # fcount(ATP_class, main_cat, main_tag, main_tag_value) |> roworder(-N)
-  # fndistinct(ATP_class)
-  gc()
 
-  ATP_prep <- ATP |> fcompute(
-    id = paste("ATP", ref, brand_wikidata, geohashTools::gh_encode(
-      replace_outliers(latitude, 90-1e-10, "clip", "max"), 
-      replace_outliers(longitude, 180-1e-10, "clip", "max"), precision = 15), sep = "_"),
-    lon = longitude,
-    lat = latitude,
-    ref = ref,
-    name = name,
-    address = paste(addr_postcode, addr_city, addr_state, addr_country, sep = ", "),
-    # description = NA_character_,
-    source_orig = source,
-    main_cat = ATP_class$main_cat, 
-    main_tag = ATP_class$main_tag, 
-    main_tag_value = ATP_class$main_tag_value,
-    alt_cats = ATP_class$alt_cats, 
-    alt_tags_values = ATP_class$alt_tags_values, 
-    other_tags_values = paste0('spider:"', spider, '", operator:"', operator, '", brand:"', brand, '", brand_wikidata:"', brand_wikidata, '", nsi_id:"', nsi_id, '"'),
-    variable = NA_character_,
-    value = NA_real_
-  ) |> ss(ATP_class$classified) # TODO: could manually improve misclassification
-  
-  if(any_duplicated(ATP_prep$id)) message("ATP: Duplicated ids")
-  rm(ATP, ATP_class); gc()
-  
-  ATP_prep %<>% fgroup_by(id) %>% fmode()
-  # ATP_prep |> st_as_sf(coords = c("lon", "lat"), crs = 4326) |> mapview::mapview()
+  if (atp) {
+    ATP <- fread("data/alltheplaces/alltheplaces.csv") |> janitor::clean_names()
+
+    # Deduplication
+    # ATP |> fselect(longitude, latitude, amenity, shop, brand, brand_wikidata, spider) |> fduplicated() |> qtable()
+    ATP %<>% fgroup_by(longitude, latitude, ref, brand_wikidata) %>% fmode()
+    # ATP |> fcompute(am = pfirst(amenity, shop), keep = .c(longitude, latitude, brand_wikidata, ref)) |> fduplicated() |> qtable()
+
+    ATP$other_tags = ""
+    ATP_class <- osm_classify(ATP, osm_point_polygon_class_det)
+    # qtable(ATP_class$classified)
+    # fcount(ATP_class, main_cat, main_tag, main_tag_value) |> roworder(-N)
+    # fndistinct(ATP_class)
+    gc()
+
+    ATP_prep <- ATP |> fcompute(
+      id = paste("ATP", ref, brand_wikidata, geohashTools::gh_encode(
+        replace_outliers(latitude, 90-1e-10, "clip", "max"),
+        replace_outliers(longitude, 180-1e-10, "clip", "max"), precision = 15), sep = "_"),
+      lon = longitude,
+      lat = latitude,
+      ref = ref,
+      name = name,
+      address = paste(addr_postcode, addr_city, addr_state, addr_country, sep = ", "),
+      # description = NA_character_,
+      source_orig = source,
+      main_cat = ATP_class$main_cat,
+      main_tag = ATP_class$main_tag,
+      main_tag_value = ATP_class$main_tag_value,
+      alt_cats = ATP_class$alt_cats,
+      alt_tags_values = ATP_class$alt_tags_values,
+      other_tags_values = paste0('spider:"', spider, '", operator:"', operator, '", brand:"', brand, '", brand_wikidata:"', brand_wikidata, '", nsi_id:"', nsi_id, '"'),
+      variable = NA_character_,
+      value = NA_real_
+    ) |> ss(ATP_class$classified) # TODO: could manually improve misclassification
+
+    if(any_duplicated(ATP_prep$id)) message("ATP: Duplicated ids")
+    rm(ATP, ATP_class); gc()
+
+    ATP_prep %<>% fgroup_by(id) %>% fmode()
+    # ATP_prep |> st_as_sf(coords = c("lon", "lat"), crs = 4326) |> mapview::mapview()
+  }
   
   # 
   ### Opencellid Cell Towers -------------------------------------------------
@@ -622,25 +624,30 @@ combine_points <- function(out = "data/combined/points_combined.qs") {
   ### Combine all datasets -----------------------------------------------------------
   #
   
-  points_combined <- rowbind(
-    OSM_points = OSM_points_prep,
-    OSM_multipolygons = OSM_multipolygons_prep,
-    OVP = OVP_prep,
-    FSP = FSP_prep,
-    ATP = ATP_prep,
-    OCID = OCID_prep,
-    GIP = GIP_prep,
-    GEMCEM = CEMENT_prep,
-    GEMIRON = IRON_prep,
-    GEMCHEM = CHEM_prep,
-    GEMSTEEL = STEEL_prep,
-    SAM = SAM_prep,
-    OGIM = OGIM_prep,
-    ITU = ITU_prep,
-    PW = PW_prep,
-    OZM = OZM_prep,
-    idcol = "source"
-  )
+  atp_list <- if (atp) list(ATP = ATP_prep) else list()
+  points_combined <- do.call(rowbind, c(
+    list(
+      OSM_points = OSM_points_prep,
+      OSM_multipolygons = OSM_multipolygons_prep,
+      OVP = OVP_prep,
+      FSP = FSP_prep
+    ),
+    atp_list,
+    list(
+      OCID = OCID_prep,
+      GIP = GIP_prep,
+      GEMCEM = CEMENT_prep,
+      GEMIRON = IRON_prep,
+      GEMCHEM = CHEM_prep,
+      GEMSTEEL = STEEL_prep,
+      SAM = SAM_prep,
+      OGIM = OGIM_prep,
+      ITU = ITU_prep,
+      PW = PW_prep,
+      OZM = OZM_prep
+    ),
+    list(idcol = "source")
+  ))
   
   dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)
   qs::qsave(points_combined, out)
