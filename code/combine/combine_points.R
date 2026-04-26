@@ -34,7 +34,7 @@ classify_overture_foursquares <- function(source) {
 }
 
 
-combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE) {
+combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE, fsq = TRUE) {
   
   
   #
@@ -125,36 +125,38 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE)
   #
   ### Foursquares Places ------------------------------------------------------------
   #
-  
-  foursquares_places <- qread("data/foursquares/places.qs") |> fsubset(!is.na(category))
-  foursquares_cat <- classify_overture_foursquares("foursquares") |> rowbind(idcol = "main_cat")
-  ind <- ckmatch(foursquares_places$category, foursquares_cat$category_id)
-  
-  FSP_prep <- foursquares_places |> fcompute(
-    id = paste0("FSP_", id),
-    lon = longitude,
-    lat = latitude,
-    ref = NA_character_,
-    name = name,
-    address = paste(address, locality, postcode, country, sep = "; "), 
-    # description = NA_character_,
-    source_orig = NA_character_, # placemaker_url,
-    main_cat = foursquares_cat$main_cat[ind],
-    main_tag = "category",
-    main_tag_value = foursquares_cat$category_name[ind],
-    alt_cats = NA_character_,
-    alt_tags_values = NA_character_,
-    other_tags_values = paste0('tel:"', tel, '", website:"', website, '"'),
-    variable = "area",
-    value = area
-  )
-  rm(foursquares_places, foursquares_cat, ind); gc()
-  
-  settfmv(FSP_prep, char_vars(FSP_prep, "names")[-1], qF); gc()
-  
-  if(any_duplicated(FSP_prep$id)) stop("FSP: Duplicated ids")
-  
-  # FSP_prep |> st_as_sf(coords = c("lon", "lat"), crs = 4326) |> mapview::mapview()
+
+  if (fsq) {
+    foursquares_places <- qread("data/foursquares/places.qs") |> fsubset(!is.na(category))
+    foursquares_cat <- classify_overture_foursquares("foursquares") |> rowbind(idcol = "main_cat")
+    ind <- ckmatch(foursquares_places$category, foursquares_cat$category_id)
+
+    FSP_prep <- foursquares_places |> fcompute(
+      id = paste0("FSP_", id),
+      lon = longitude,
+      lat = latitude,
+      ref = NA_character_,
+      name = name,
+      address = paste(address, locality, postcode, country, sep = "; "),
+      # description = NA_character_,
+      source_orig = NA_character_, # placemaker_url,
+      main_cat = foursquares_cat$main_cat[ind],
+      main_tag = "category",
+      main_tag_value = foursquares_cat$category_name[ind],
+      alt_cats = NA_character_,
+      alt_tags_values = NA_character_,
+      other_tags_values = paste0('tel:"', tel, '", website:"', website, '"'),
+      variable = "area",
+      value = area
+    )
+    rm(foursquares_places, foursquares_cat, ind); gc()
+
+    settfmv(FSP_prep, char_vars(FSP_prep, "names")[-1], qF); gc()
+
+    if(any_duplicated(FSP_prep$id)) stop("FSP: Duplicated ids")
+
+    # FSP_prep |> st_as_sf(coords = c("lon", "lat"), crs = 4326) |> mapview::mapview()
+  }
   
   #
   ### Alltheplaces ------------------------------------------------------------
@@ -624,14 +626,15 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE)
   ### Combine all datasets -----------------------------------------------------------
   #
   
+  fsq_list <- if (fsq) list(FSP = FSP_prep) else list()
   atp_list <- if (atp) list(ATP = ATP_prep) else list()
   points_combined <- do.call(rowbind, c(
     list(
       OSM_points = OSM_points_prep,
       OSM_multipolygons = OSM_multipolygons_prep,
-      OVP = OVP_prep,
-      FSP = FSP_prep
+      OVP = OVP_prep
     ),
+    fsq_list,
     atp_list,
     list(
       OCID = OCID_prep,

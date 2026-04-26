@@ -27,13 +27,14 @@ fastverse_conflicts()
 # Set ot "always" to always redownload
 CUES_MODE <- "always"
 PIPELINE_FLAGS <- list(
-  point_fetching = TRUE,
-  lines_fetching = TRUE,
+  point_fetching = FALSE,
+  lines_fetching = FALSE,
   point_processing = TRUE,
-  points_combination = TRUE,
-  point_aggregation = TRUE,
-  line_aggregation = TRUE
-  alltheplaces = FALSE
+  points_combination = FALSE,
+  point_aggregation = FALSE,
+  line_aggregation = FALSE,
+  alltheplaces = FALSE,
+  foursquares = FALSE
 )
 
 # Set target options:
@@ -57,6 +58,7 @@ POINT_AGGREGATION <- isTRUE(PIPELINE_FLAGS$point_aggregation)
 LINE_AGGREGATION <- isTRUE(PIPELINE_FLAGS$line_aggregation)
 ANY_AGGREGATION <- POINT_AGGREGATION || LINE_AGGREGATION
 ATP_ENABLED <- isTRUE(PIPELINE_FLAGS$alltheplaces)
+FSQ_ENABLED <- isTRUE(PIPELINE_FLAGS$foursquares)
 
 # Fail-fast validation for stage dependencies:
 if (POINT_PROCESSING && !POINT_FETCHING) {
@@ -128,12 +130,12 @@ point_fetch_targets <- if (POINT_FETCHING) list(
     cue = tar_cue(mode = CUES_MODE)
   ),
   # Foursquares Pipeline
-  tar_target(
+  if (FSQ_ENABLED) tar_target(
     name = foursquares_s3_paths,
     command = get_foursquares_s3_paths()
   ),
 
-  tar_target(
+  if (FSQ_ENABLED) tar_target(
     name = foursquares_places,
     command = download_foursquares_places(foursquares_s3_paths, inc_ctry),
     format = "file",
@@ -254,9 +256,10 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
   tar_target(
     name = points_combined,
     command = {
-      combined_osm; overture_places; foursquares_places; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file
+      combined_osm; overture_places; ocid_file; portswatch_file; egm_grid_file; ogim_gpkg_file
+      if (FSQ_ENABLED) foursquares_places
       if (ATP_ENABLED) alltheplaces_csv
-      combine_points(atp = ATP_ENABLED)
+      combine_points(atp = ATP_ENABLED, fsq = FSQ_ENABLED)
     },
     format = "file"
   )
