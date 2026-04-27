@@ -25,14 +25,14 @@ fastverse_conflicts()
 # re-downloading files that already exist inside fetcher functions.
 # Set to "thorough" to re-run all targets and re-fetch all data.
 # Set ot "always" to always redownload
-CUES_MODE <- "always"
+CUES_MODE <- "thorough"
 PIPELINE_FLAGS <- list(
-  point_fetching = FALSE,
-  lines_fetching = FALSE,
+  point_fetching = TRUE,
+  lines_fetching = TRUE,
   point_processing = TRUE,
-  points_combination = FALSE,
-  point_aggregation = FALSE,
-  line_aggregation = FALSE,
+  points_combination = TRUE,
+  point_aggregation = TRUE,
+  line_aggregation = TRUE,
   alltheplaces = FALSE,
   foursquares = FALSE
 )
