@@ -6,7 +6,7 @@ classify_overture_foursquares <- function(source) {
   source("code/combine/overture_foursquares_to_osm_det.R")
   
   # Load categories
-  categories <- qread(sprintf("data/%s/categories.qs", source))
+  categories <- qs2::qs_read(sprintf("data/%s/categories.qs", source))
   cat("Total", source, "categories:", fnrow(categories), "\n\n")
   
   # Apply classification in order (earlier categories take precedence)
@@ -41,7 +41,7 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
   ### Open Street Map ------------------------------------------------------------
   #
   
-  OSM_points <- qread("data/OSM/points.qs")
+  OSM_points <- qs2::qs_read("data/OSM/points.qs")
   
   OSM_points_prep <- OSM_points |> fcompute(
     id = paste0("OSM_node_", osm_id),
@@ -65,7 +65,7 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
   if(any_duplicated(OSM_points_prep$id)) stop("OSM: Duplicated ids")
   rm(OSM_points); gc()
   
-  OSM_multipolygons <- qread("data/OSM/multipolygons.qs")
+  OSM_multipolygons <- qs2::qs_read("data/OSM/multipolygons.qs")
   
   OSM_multipolygons_prep <- OSM_multipolygons |> fcompute(
     id = iif(is.na(osm_id), paste0("OSM_way_", osm_way_id), paste0("OSM_node_", osm_id)),
@@ -93,7 +93,7 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
   ### Overture Places ------------------------------------------------------------
   #
   
-  overture_places <- qread("data/overture/places.qs") |> fsubset(!is.na(category))
+  overture_places <- qs2::qs_read("data/overture/places.qs") |> fsubset(!is.na(category))
   overture_cat <- classify_overture_foursquares("overture") |> rowbind(idcol = "main_cat")
   
   OVP_prep <- overture_places |> fcompute(
@@ -127,7 +127,7 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
   #
 
   if (fsq) {
-    foursquares_places <- qread("data/foursquares/places.qs") |> fsubset(!is.na(category))
+    foursquares_places <- qs2::qs_read("data/foursquares/places.qs") |> fsubset(!is.na(category))
     foursquares_cat <- classify_overture_foursquares("foursquares") |> rowbind(idcol = "main_cat")
     ind <- ckmatch(foursquares_places$category, foursquares_cat$category_id)
 
