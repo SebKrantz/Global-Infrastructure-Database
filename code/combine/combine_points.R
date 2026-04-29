@@ -657,3 +657,64 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
   out
 }
 
+
+deduplicate_points <- function(points,
+                               out = "data/combined/points_deduplicated.qs",
+                               exempt_sources = c("PW", "OZM", "WPI", "WBP"),
+                               important_sources = c("GIP", "GPP", "GSP", "NHF"),
+                               shift_steps = 0:9,
+                               cell_tolerance_m = 10,
+                               shift_step_m = 1) {
+  points <- qDT(points)
+  required_cols <- c("source", "lon", "lat", "main_cat", "value")
+  missing_cols <- setdiff(required_cols, names(points))
+  if (length(missing_cols)) {
+    stop("deduplicate_points: points is missing required columns: ", paste(missing_cols, collapse = ", "))
+  }
+
+  if (anyNA(points$source) || anyNA(points$lon) || anyNA(points$lat)) {
+    stop("deduplicate_points: source, lon, and lat must not contain missing values.")
+  }
+
+  deg_per_meter <- 1 / (40075017 / 360)
+  cell_tolerance_deg <- cell_tolerance_m * deg_per_meter
+  shift_step_deg <- shift_step_m * deg_per_meter
+
+  points_exempt <- fsubset(points, source %in% exempt_sources | is.na(main_cat))
+  points_dedup <- fsubset(points, source %!in% exempt_sources & !is.na(main_cat))
+
+  if (!fnrow(points_dedup)) {
+    out_tbl <- points
+  } else {
+    value_for_weight <- pmax(replace_na(suppressWarnings(as.numeric(points_dedup$value)), 0), 0)
+    points_dedup[, lon_cos := lon * cos(lat * pi / 180)]
+    points_dedup[, weight := 1 + log(iif(source %in% important_sources, fmax(value_for_weight) + 1, value_for_weight + 1)) / 1e5]
+
+    shift_grid <- expand.grid(
+      lon_nudge = shift_steps * shift_step_deg,
+      lat_nudge = shift_steps * shift_step_deg
+    )
+
+    for (i in seq_row(shift_grid)) {
+      n <- fnrow(points_dedup)
+      points_dedup %<>% fmutate(
+        dup_id = finteraction(
+          main_cat,
+          TRA(lon_cos + shift_grid$lon_nudge[i], cell_tolerance_deg, "-%%"),
+          TRA(lat + shift_grid$lat_nudge[i], cell_tolerance_deg, "-%%"),
+          factor = FALSE
+        )
+      ) %>%
+        fsubset(source == fmode(source, dup_id, weight, "fill"))
+      cat("Dups removed:", n - fnrow(points_dedup), "\n")
+    }
+
+    points_dedup[, c("lon_cos", "weight", "dup_id") := NULL]
+    out_tbl <- rowbind(points_exempt, get_vars(points_dedup, names(points_exempt)))
+  }
+
+  dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)
+  qs2::qs_save(out_tbl, out)
+  out
+}
+
