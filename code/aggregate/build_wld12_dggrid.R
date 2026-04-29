@@ -43,15 +43,17 @@ build_wld12_dggrid <- function(
   }
 
   collapse::setrename(wld12, seqnum = cell)
-  collapse::settransform(wld12, area_m2 = as.numeric(sf::st_area(geometry)))
-  collapse::settransform(wld12, dggridR::dgSEQNUM_to_GEO(dg_spec, cell))
+  wld12$area_m2 <- as.numeric(sf::st_area(wld12$geometry))
+  geo_coords <- dggridR::dgSEQNUM_to_GEO(dg_spec, wld12$cell)
+  wld12$lon_deg <- geo_coords$lon_deg
+  wld12$lat_deg <- geo_coords$lat_deg
   data.table::setcolorder(wld12, c("cell", "lon_deg", "lat_deg", "area_m2", "geometry"))
 
   out <- list(dg_spec = dg_spec, hex_sf = wld12)
 
   if (length(save_path) && nzchar(save_path)) {
     dir.create(dirname(save_path), recursive = TRUE, showWarnings = FALSE)
-    qs::qsave(out, save_path)
+    qs2::qs_save(out, save_path)
   }
 
   out
