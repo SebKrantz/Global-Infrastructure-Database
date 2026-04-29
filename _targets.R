@@ -4,7 +4,7 @@
 # Bootstrap required R packages (install only missing ones).
 REQUIRED_PACKAGES <- c(
   "fastverse", "targets", "wbstats", "rvest", "countrycode", "sf", "s2", "osmclass",
-  "DBI", "duckdb", "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr",
+  "DBI", "duckdb", "geohashTools", "readxl", "janitor", "qs2", "geojsonsf", "httr",
   "jsonlite", "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse",
   "data.table"
 )
@@ -40,10 +40,10 @@ PIPELINE_FLAGS <- list(
 # Set target options:
 tar_option_set(
   packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb",
-               "geohashTools", "readxl", "janitor", "qs", "geojsonsf", "httr", "jsonlite",
+               "geohashTools", "readxl", "janitor", "qs2", "geojsonsf", "httr", "jsonlite",
                "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse", "data.table"),
   trust_timestamps = TRUE,
-  format = "qs"
+  format = "rds"
 )
 
 # Source all R scripts in code/ folder:
@@ -286,9 +286,9 @@ point_aggregation_targets <- if (POINT_AGGREGATION) list(
     name = points_hex_agg,
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
-      ph <- aggregate_points_to_hex(qs::qread(points_combined), qs::qread(wld12_grid))
+      ph <- aggregate_points_to_hex(qs2::qs_read(points_combined), qs2::qs_read(wld12_grid))
       out <- "data/aggregate/points_by_hex.qs"
-      qs::qsave(ph, out)
+      qs2::qs_save(ph, out)
       out
     }
     ,
@@ -302,10 +302,10 @@ line_aggregation_targets <- if (LINE_AGGREGATION) list(
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
       lh <- aggregate_lines_to_hex(
-        overture_transportation, egm_grid_file, ogim_gpkg_file, qs::qread(wld12_grid), inc_ctry
+        overture_transportation, egm_grid_file, ogim_gpkg_file, qs2::qs_read(wld12_grid), inc_ctry
       )
       out <- "data/aggregate/lines_by_hex.qs"
-      qs::qsave(lh, out)
+      qs2::qs_save(lh, out)
       out
     },
     format = "file",
@@ -315,9 +315,9 @@ line_aggregation_targets <- if (LINE_AGGREGATION) list(
     name = hex_gridded_combined,
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
-      hc <- combine_hex_gridded(qs::qread(points_hex_agg), qs::qread(lines_hex_agg))
+      hc <- combine_hex_gridded(qs2::qs_read(points_hex_agg), qs2::qs_read(lines_hex_agg))
       out <- "data/aggregate/infrastructure_hex_r12.qs"
-      qs::qsave(hc, out)
+      qs2::qs_save(hc, out)
       out
     }
     ,

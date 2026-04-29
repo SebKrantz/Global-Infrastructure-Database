@@ -36,7 +36,7 @@ download_overture_places <- function(latest, inc_ctry) {
     fmutate(taxonomy = NULL)
   
   # Saving 
-  qs::qsave(categories, "data/overture/categories.qs")
+  qs2::qs_save(categories, "data/overture/categories.qs")
   
   # See number of rows
   # DBI::dbGetQuery(con, sprintf("select count(*) from read_parquet('%s') limit 1", places_url))
@@ -86,7 +86,7 @@ download_overture_places <- function(latest, inc_ctry) {
       lapply(qF, sort = FALSE)
     
     # Saving
-    qs::qsave(places, "data/overture/places.qs")
+    qs2::qs_save(places, "data/overture/places.qs")
     
     # Disconnect from DuckDB
     DBI::dbDisconnect(con, shutdown = TRUE)

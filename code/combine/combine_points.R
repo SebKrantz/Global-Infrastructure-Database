@@ -653,7 +653,7 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
   ))
   
   dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)
-  qs::qsave(points_combined, out)
+  qs2::qs_save(points_combined, out)
   out
 }
 

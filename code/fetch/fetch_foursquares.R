@@ -50,7 +50,7 @@ download_foursquares_places <- function(s3_paths, inc_ctry) {
   categories <- DBI::dbGetQuery(con, sprintf("select * from read_parquet('%s*')", categories_path))
 
   # Saving
-  qs::qsave(categories, "data/foursquares/categories.qs")
+  qs2::qs_save(categories, "data/foursquares/categories.qs")
   
   # Exclude countries
   excl_ctry <- c(na_rm(countrycode::codelist$iso2c[!countrycode::codelist$iso3c %in% inc_ctry$iso3c]), "usa")
@@ -78,7 +78,7 @@ download_foursquares_places <- function(s3_paths, inc_ctry) {
     places <- DBI::dbGetQuery(con, query)
     
     # Saving
-    qs::qsave(places, "data/foursquares/places.qs")
+    qs2::qs_save(places, "data/foursquares/places.qs")
     
     # Disconnect from DuckDB
     DBI::dbDisconnect(con, shutdown = TRUE)

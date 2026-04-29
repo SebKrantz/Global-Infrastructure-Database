@@ -45,7 +45,7 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
     points %<>% fsubset(is.finite(osm_id)) %>% tfmv(is_categorical, qF)
 
     # Saving
-    qs::qsave(points, paste0("data/OSM/processed/", sub(".osm.pbf", "-points.qs", basename(file))))
+    qs2::qs_save(points, paste0("data/OSM/processed/", sub(".osm.pbf", "-points.qs", basename(file))))
 
     print(fnrow(points))
     message("Points Final Size: ", format(object.size(points), "Mb"))
@@ -105,7 +105,7 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
     setv(names(lines_list), "boundary", "protected_area")
 
     # Saving
-    qs::qsave(lines_list, paste0("data/OSM/processed/", sub(".osm.pbf", "-lines.qs", basename(file))))
+    qs2::qs_save(lines_list, paste0("data/OSM/processed/", sub(".osm.pbf", "-lines.qs", basename(file))))
 
     message("Lines Final Size: ", format(object.size(lines_list), "Mb"))
     rm(lines_list); gc()
@@ -200,7 +200,7 @@ proc_osm <- function(osm_ctry, path = "data/OSM/raw") {
       multipolygons <- if(length(int) == 1L) multipolygons[[1]] else rowbind(multipolygons)
 
       # Saving
-      qs::qsave(multipolygons, paste0("data/OSM/processed/", sub(".osm.pbf", "-multipolygons.qs", basename(file))))
+      qs2::qs_save(multipolygons, paste0("data/OSM/processed/", sub(".osm.pbf", "-multipolygons.qs", basename(file))))
 
       print(fnrow(multipolygons))
       message("Multipolygons Final Size: ", format(object.size(multipolygons), "Mb"))
@@ -243,7 +243,7 @@ combine_osm_proc <- function(proc_osm_dir = "data/OSM/processed") {
   for (file in files) {
     
     message("Reading: ", file)
-    obj <- qs::qread(file)
+    obj <- qs2::qs_read(file)
     
     if(grepl("-points", file)) {
       points <- c(points, set_names(list(obj), file))
@@ -256,11 +256,11 @@ combine_osm_proc <- function(proc_osm_dir = "data/OSM/processed") {
   }
   
   points <- if(length(points) > 0) rowbind(points, idcol = "source", fill = TRUE) else NULL
-  qs::qsave(points, "data/OSM/points.qs"); rm(points); gc()
+  qs2::qs_save(points, "data/OSM/points.qs"); rm(points); gc()
   lines <- if(length(lines) > 0) lapply(t_list(lines), rowbind, idcol = "source", fill = TRUE) else NULL
-  qs::qsave(lines, "data/OSM/lines.qs"); rm(lines); gc()
+  qs2::qs_save(lines, "data/OSM/lines.qs"); rm(lines); gc()
   multipolygons <- if(length(multipolygons) > 0) rowbind(multipolygons, idcol = "source", fill = TRUE) else NULL
-  qs::qsave(multipolygons, "data/OSM/multipolygons.qs"); rm(multipolygons); gc()
+  qs2::qs_save(multipolygons, "data/OSM/multipolygons.qs"); rm(multipolygons); gc()
   
 
   c(points = "data/OSM/points.qs", lines = "data/OSM/lines.qs", multipolygons = "data/OSM/multipolygons.qs")
