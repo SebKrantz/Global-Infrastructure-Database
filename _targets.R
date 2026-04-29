@@ -262,6 +262,11 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
       combine_points(atp = ATP_ENABLED, fsq = FSQ_ENABLED)
     },
     format = "file"
+  ),
+  tar_target(
+    name = points_deduplicated,
+    command = deduplicate_points(qs2::qs_read(points_combined)),
+    format = "file"
   )
 ) else list()
 
@@ -286,7 +291,7 @@ point_aggregation_targets <- if (POINT_AGGREGATION) list(
     name = points_hex_agg,
     command = {
       dir.create("data/aggregate", recursive = TRUE, showWarnings = FALSE)
-      ph <- aggregate_points_to_hex(qs2::qs_read(points_combined), qs2::qs_read(wld12_grid))
+      ph <- aggregate_points_to_hex(qs2::qs_read(points_deduplicated), qs2::qs_read(wld12_grid))
       out <- "data/aggregate/points_by_hex.qs"
       qs2::qs_save(ph, out)
       out
