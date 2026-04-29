@@ -5,6 +5,8 @@
 #' @return \code{data.table} with all hex cells, \code{lon_deg}, \code{lat_deg}, \code{area_m2},
 #'   and columns \code{pt_<main_cat>} (integer counts, zero-filled).
 aggregate_points_to_hex <- function(points_tbl, wld12_grid_list) {
+  # The grid list carries both the DGGRID spec for coordinate-to-cell lookup and
+  # the sf grid layer used for output metadata.
   dg_spec <- wld12_grid_list$dg_spec
   hex_sf <- wld12_grid_list$hex_sf
   valid_cells <- unique(hex_sf$cell)
@@ -14,9 +16,13 @@ aggregate_points_to_hex <- function(points_tbl, wld12_grid_list) {
     stop("aggregate_points_to_hex: points_tbl needs lon, lat, main_cat")
   }
 
+  # Assign every point to a DGGRID sequence number, then drop points that fall
+  # outside the retained grid cells (for example, cells removed by land masking).
   pts[, cell := suppressWarnings(dggridR::dgGEO_to_SEQNUM(dg_spec, lon, lat)$seqnum)]
   pts <- collapse::fsubset(pts, cell %in% valid_cells)
 
+  # Keep one metadata row for every grid cell so the aggregate output includes
+  # empty cells, not only cells containing infrastructure points.
   meta <- collapse::qDT(sf::st_drop_geometry(hex_sf))
   meta <- meta[, c("cell", "lon_deg", "lat_deg", "area_m2"), with = FALSE]
   if ("area_m2" %in% names(meta)) {
@@ -27,6 +33,8 @@ aggregate_points_to_hex <- function(points_tbl, wld12_grid_list) {
     return(meta)
   }
 
+  # Count by cell and harmonized main category, then pivot categories to stable
+  # point-count columns using the pt_ prefix.
   cnt <- collapse::fcount(pts, cell, main_cat)
   wide <- collapse::pivot(
     cnt,
@@ -40,6 +48,8 @@ aggregate_points_to_hex <- function(points_tbl, wld12_grid_list) {
   safe <- make.names(as.character(nm), unique = TRUE)
   data.table::setnames(wide, nm, paste0("pt_", safe))
 
+  # Left join to the complete grid metadata and zero-fill categories that are
+  # absent in a cell.
   out <- collapse::join(meta, wide, on = "cell", how = "left")
   pt_cols <- grep("^pt_", names(out), value = TRUE)
   for (col in pt_cols) {
@@ -58,18 +68,27 @@ combine_hex_gridded <- function(points_hex, lines_hex) {
   if (!"cell" %in% names(p) || !"cell" %in% names(l)) {
     stop("combine_hex_gridded: inputs must contain cell")
   }
+
+  # Use a full join so either point-only or line-only cells are preserved in the
+  # final combined grid.
   out <- collapse::join(p, l, on = "cell", how = "full", sort = TRUE)
   is_num_col <- function(x) {
     is.numeric(x) || inherits(x, "units")
   }
   num_cols <- names(out)[vapply(out, is_num_col, logical(1L))]
   num_cols <- setdiff(num_cols, c("cell"))
+
+  # Convert units objects from spatial calculations to plain numeric values and
+  # treat missing joined values as zero observed infrastructure.
   for (col in num_cols) {
     if (inherits(out[[col]], "units")) {
       out[, (col) := as.numeric(get(col))]
     }
     out[, (col) := data.table::nafill(get(col), fill = 0)]
   }
+
+  # Keep grid identifiers and metadata first, followed by sorted point count
+  # columns and sorted line length columns.
   first <- c("cell", "lon_deg", "lat_deg", "area_m2")
   first <- first[first %in% names(out)]
   rest <- setdiff(names(out), first)
