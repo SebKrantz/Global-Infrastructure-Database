@@ -1,0 +1,534 @@
+# Pipeline Setup Guide
+
+This document describes how to prepare a new server to run the Global Infrastructure Database pipeline with `run_pipeline.R`.
+
+The pipeline is defined in `_targets.R` and uses the `targets` R package. It downloads most large open data inputs itself, but several primary point-source datasets must be placed in the expected `data/` subdirectories before the combination step can run.
+
+## 1. Repository Location
+
+Clone or copy the repository to the server and always run the pipeline from the repository root.
+
+```sh
+cd /path/to/Global-Infrastructure-Database
+Rscript run_pipeline.R
+```
+
+`run_pipeline.R` uses relative paths:
+
+```r
+library(targets)
+source("_targets.R")
+tar_make(callr_function = NULL)
+```
+
+Running it from another working directory will fail because `_targets.R`, `code/`, and `data/` are resolved relative to the current working directory.
+
+## 2. System Dependencies
+
+Install a recent R version and geospatial libraries before installing R packages.
+
+Required system capabilities:
+
+- R with compilation tools available.
+- GDAL with vector translation support, including OSM/PBF input support used by `sf::gdal_utils("vectortranslate", ...)`.
+- PROJ and GEOS for `sf`, `s2`, `terra`, `dggridR`, and related spatial operations.
+- Network access to World Bank APIs, Geofabrik, Overture Maps S3, Foursquare S3 if enabled, Zenodo, ArcGIS/PortWatch, OpenCellID, Wikipedia, and CRAN.
+- Enough disk and memory for global OSM, Overture places, Overture transportation, and DGGRID resolution-12 aggregation. Overture transportation is especially heavy and defaults DuckDB to a `32GB` memory limit.
+
+Typical Ubuntu packages:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y \
+  r-base r-base-dev \
+  build-essential \
+  libcurl4-openssl-dev libssl-dev libxml2-dev \
+  libgdal-dev libproj-dev libgeos-dev libudunits2-dev \
+  libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
+  python3 python3-venv python3-pip
+```
+
+On macOS, install R, Xcode command line tools, and the geospatial stack through Homebrew or another package manager.
+
+## 3. R Dependencies
+
+`_targets.R` bootstraps missing R packages with `install.packages()`:
+
+```r
+fastverse, targets, wbstats, rvest, countrycode, sf, s2, osmclass,
+DBI, duckdb, geohashTools, readxl, janitor, qs2, geojsonsf, httr,
+jsonlite, dggridR, terra, exactextractr, rnaturalearth, collapse,
+data.table
+```
+
+For reproducible server builds, it is better to install these explicitly before the first run, using a fixed CRAN mirror or a package snapshot if available.
+
+DuckDB also needs the `spatial` and `httpfs` extensions. Some functions call `INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;`, while others only call `LOAD`. On a server without prior DuckDB extension cache, run a small DuckDB/R setup once with internet access if `LOAD spatial` or `LOAD httpfs` fails.
+
+## 4. Python Dependencies
+
+Python is only required when `PIPELINE_FLAGS$alltheplaces = TRUE`.
+
+The pipeline expects a virtual environment at `venv/` and runs:
+
+```sh
+venv/bin/python code/fetch/fetch_alltheplaces.py
+venv/bin/python code/process/proc_alltheplaces.py
+```
+
+Set it up from the repository root:
+
+```sh
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
+```
+
+Current `requirements.txt`:
+
+```txt
+beautifulsoup4
+requests
+```
+
+With the default flags, AllThePlaces is disabled, so this Python setup is optional unless you enable it.
+
+## 5. Pipeline Flags
+
+The default flags in `_targets.R` are:
+
+```r
+PIPELINE_FLAGS <- list(
+  point_fetching = TRUE,
+  lines_fetching = TRUE,
+  point_processing = TRUE,
+  points_combination = TRUE,
+  point_aggregation = TRUE,
+  line_aggregation = TRUE,
+  alltheplaces = FALSE,
+  foursquares = FALSE
+)
+```
+
+Important implications:
+
+- OSM, Overture places, OpenCellID, PortWatch, EGM, OGIM, Overture transportation, point aggregation, and line aggregation are enabled by default.
+- AllThePlaces and Foursquare are disabled by default.
+- `points_combination = TRUE` requires `point_fetching = TRUE` and `point_processing = TRUE`.
+- `point_aggregation = TRUE` requires `points_combination = TRUE`.
+- `line_aggregation = TRUE` requires line fetching, point fetching, and point aggregation.
+
+`CUES_MODE` is currently set to:
+
+```r
+CUES_MODE <- "thorough"
+```
+
+This favors rerunning expensive fetch/process targets. For a server that already has downloaded data and should avoid re-fetching, consider changing this to `"never"` after confirming the expected files exist.
+
+## 6. Required Directory Structure
+
+Create the base `data/` directory and place manual inputs in the paths below. Pipeline-generated directories will be created automatically, but pre-creating the full structure makes server setup easier.
+
+```text
+data/
+  GEM/
+  OZM/
+  SAM/
+    TZ-SAM_Solar Asset Mapper - Q4 2025/
+  ITU/
+    ITU_Nov_2024/
+  OSM/
+    raw/                  # generated by OSM download
+    processed/            # generated by OSM processing
+  overture/
+    transportation/       # generated by Overture transportation fetch
+  opencellid/             # generated by OpenCellID fetch
+  portswatch/             # generated by PortWatch fetch
+  EGM/                    # generated by EGM fetch
+  OGIM/                   # generated by OGIM fetch
+  combined/               # generated by combine/dedup targets
+  aggregate/              # generated by aggregate targets
+  dggrid/                 # generated by grid target
+  alltheplaces/           # generated if alltheplaces = TRUE
+  foursquares/            # generated if foursquares = TRUE
+  Landcover/              # optional, see DGGRID note below
+```
+
+## 7. Manual Primary Input Files
+
+These files are read directly by `combine_points()` or helper loaders and are not currently fetched by targets. Copy them to the server before running the full default pipeline.
+
+### GEM / GeoAsset Trackers
+
+Place the following files in `data/GEM/`:
+
+```text
+data/GEM/Global-Integrated-Power-March-2026.xlsx
+data/GEM/Global-Cement-and-Concrete-Tracker_July-2025.xlsx
+data/GEM/Global-Iron-Ore-Mines-Tracker-August-2025-V1.xlsx
+data/GEM/Plant-level-data-Global-Chemicals-Inventory-November-2025-V1.xlsx
+data/GEM/Plant-level-data-Global-Iron-and-Steel-Tracker-December-2025-V1.xlsx
+```
+
+Expected sheets:
+
+- `Global-Integrated-Power-March-2026.xlsx`: sheet index `2`.
+- `Global-Cement-and-Concrete-Tracker_July-2025.xlsx`: `Plant Data`.
+- `Global-Iron-Ore-Mines-Tracker-August-2025-V1.xlsx`: `Main Data`.
+- `Plant-level-data-Global-Chemicals-Inventory-November-2025-V1.xlsx`: `Plant data`.
+- `Plant-level-data-Global-Iron-and-Steel-Tracker-December-2025-V1.xlsx`: `Plant data` and `Plant capacities and status`.
+
+### Open Zone Map
+
+Place:
+
+```text
+data/OZM/Open Zone Map raw data - The Adrianople Group - 2023.csv
+```
+
+### Solar Asset Mapper
+
+Place:
+
+```text
+data/SAM/TZ-SAM_Solar Asset Mapper - Q4 2025/2025-Q4_analysis_polygons.csv
+```
+
+### ITU Infrastructure Connectivity Map
+
+Place:
+
+```text
+data/ITU/ITU_Nov_2024/ITU_node_ties.geojson
+```
+
+### Optional Landcover Raster
+
+The DGGRID builder has a default argument for:
+
+```text
+data/Landcover/Consensus_reduced_class_12_open_water.tif
+```
+
+The pipeline path currently calls `get_or_build_wld12_dggrid()`, which rebuilds with `water_raster_path = NULL` when no cache exists, so this raster is not required for the default run. It is only needed if you explicitly build the grid with water filtering.
+
+## 8. Inputs Downloaded by Targets
+
+These are generated by the pipeline when the relevant flags are enabled.
+
+### Country and Income Metadata
+
+Targets:
+
+- `income_groups`
+- `geo_ctry`
+- `inc_ctry`
+
+Sources:
+
+- World Bank `wbstats`.
+- Geofabrik country download pages.
+
+No local input files are required, but the server needs internet access.
+
+### OSM
+
+Targets:
+
+- `osm_ctry`
+- `osm_proc`
+- `combined_osm`
+
+Generated files:
+
+```text
+data/OSM/raw/*.osm.pbf
+data/OSM/processed/*-points.qs
+data/OSM/processed/*-lines.qs
+data/OSM/processed/*-multipolygons.qs
+data/OSM/points.qs
+data/OSM/lines.qs
+data/OSM/multipolygons.qs
+```
+
+Notes:
+
+- Raw PBF files are downloaded from Geofabrik for non-high-income countries.
+- Processing uses GDAL through `sf::gdal_utils("vectortranslate", ...)`.
+- OSM features are classified with the `osmclass` package.
+
+### Overture Places
+
+Targets:
+
+- `overture_latest_release`
+- `overture_places`
+
+Generated files:
+
+```text
+data/overture/places.qs
+data/overture/categories.qs
+```
+
+Sources:
+
+- Overture STAC catalog.
+- Overture Maps S3 `theme=places`.
+- Overture categories CSV from GitHub.
+
+Requirements:
+
+- DuckDB with `spatial` and `httpfs` extensions.
+- S3 access to `overturemaps-us-west-2`.
+
+### Overture Transportation
+
+Target:
+
+- `overture_transportation`
+
+Generated files:
+
+```text
+data/overture/transportation/road_segments.parquet
+data/overture/transportation/road_segments.parquet.release
+data/overture/transportation/rail_segments.parquet
+data/overture/transportation/rail_segments.parquet.release
+data/overture/transportation/water_segments.parquet
+data/overture/transportation/water_segments.parquet.release
+```
+
+Notes:
+
+- Road segments are restricted to `motorway`, `trunk`, `primary`, `secondary`, and `tertiary`.
+- The fetcher writes chunk files during download and then merges them.
+- This is the most resource-intensive download step.
+
+### OpenCellID
+
+Target:
+
+- `ocid_file`
+
+Generated file:
+
+```text
+data/opencellid/cell_towers.csv.gz
+```
+
+Source:
+
+- OpenCellID full cell tower download.
+
+Note:
+
+- The current fetch URL includes a token in `code/smaller_datasets.R`. On a new server, confirm the token is still valid before a long run.
+
+### PortWatch
+
+Target:
+
+- `portswatch_file`
+
+Generated file:
+
+```text
+data/portswatch/portswatch.csv
+```
+
+Source:
+
+- IMF PortWatch ArcGIS FeatureServer GeoJSON endpoints.
+
+### EGM / Gridfinder
+
+Target:
+
+- `egm_grid_file`
+
+Generated file:
+
+```text
+data/EGM/grid.gpkg
+```
+
+Source:
+
+- Latest Zenodo version for concept `3369106`.
+
+### OGIM
+
+Target:
+
+- `ogim_gpkg_file`
+
+Generated file:
+
+```text
+data/OGIM/OGIM.gpkg
+```
+
+Source:
+
+- Latest Zenodo version for concept `7466757`.
+
+`load_OGIM()` also accepts exactly one legacy file matching:
+
+```text
+data/OGIM/OGIM_*.gpkg
+```
+
+but the target fetcher writes `data/OGIM/OGIM.gpkg`.
+
+### Foursquare, Optional
+
+Only used if `PIPELINE_FLAGS$foursquares = TRUE`.
+
+Targets:
+
+- `foursquares_s3_paths`
+- `foursquares_places`
+
+Generated files:
+
+```text
+data/foursquares/places.qs
+data/foursquares/categories.qs
+```
+
+Source:
+
+- Foursquare public S3 paths scraped from Foursquare documentation.
+
+Requirements:
+
+- DuckDB with `spatial` and `httpfs`.
+- S3 access to the documented Foursquare open-data bucket.
+
+### AllThePlaces, Optional
+
+Only used if `PIPELINE_FLAGS$alltheplaces = TRUE`.
+
+Targets:
+
+- `alltheplaces_zip`
+- `alltheplaces_csv`
+
+Generated files:
+
+```text
+data/alltheplaces/output.zip
+data/alltheplaces/alltheplaces.csv
+```
+
+Requirements:
+
+- Python virtual environment at `venv/`.
+- `beautifulsoup4` and `requests`.
+
+## 9. Combined and Final Outputs
+
+The combination and aggregation stages generate:
+
+```text
+data/combined/points_combined.qs
+data/combined/points_deduplicated.qs
+data/dggrid/wld12_grid.qs
+data/aggregate/points_by_hex.qs
+data/aggregate/lines_by_hex.qs
+data/aggregate/infrastructure_hex_r12.qs
+```
+
+Point flow:
+
+```text
+data/OSM/points.qs
+data/OSM/multipolygons.qs
+data/overture/places.qs
+manual GEM/OZM/SAM/ITU inputs
+downloaded OpenCellID/PortWatch/EGM/OGIM inputs
+optional Foursquare/AllThePlaces inputs
+  -> data/combined/points_combined.qs
+  -> data/combined/points_deduplicated.qs
+  -> data/aggregate/points_by_hex.qs
+```
+
+Line flow:
+
+```text
+data/overture/transportation/*.parquet
+data/EGM/grid.gpkg
+data/OGIM/OGIM.gpkg
+data/dggrid/wld12_grid.qs
+  -> data/aggregate/lines_by_hex.qs
+```
+
+Final combined gridded output:
+
+```text
+data/aggregate/infrastructure_hex_r12.qs
+```
+
+## 10. Recommended Setup Checklist
+
+1. Clone the repository on the server.
+2. Install R and geospatial system libraries.
+3. Install required R packages, or allow `_targets.R` to install missing packages on first run.
+4. If AllThePlaces will be enabled, create `venv/` and install `requirements.txt`.
+5. Copy manual input files to:
+   - `data/GEM/`
+   - `data/OZM/`
+   - `data/SAM/TZ-SAM_Solar Asset Mapper - Q4 2025/`
+   - `data/ITU/ITU_Nov_2024/`
+6. Confirm network access to the remote sources listed above.
+7. Confirm DuckDB can load `spatial` and `httpfs`.
+8. Decide whether to keep `CUES_MODE <- "thorough"` or switch to `"never"` for a resume/reuse run.
+9. Review `PIPELINE_FLAGS` in `_targets.R`.
+10. Run from the repository root:
+
+```sh
+Rscript run_pipeline.R
+```
+
+## 11. Quick Preflight Commands
+
+Run these from the repository root before starting a long pipeline run.
+
+```sh
+Rscript -e "parse('_targets.R'); parse('run_pipeline.R'); cat('R parse OK\n')"
+```
+
+```sh
+Rscript -e "pkgs <- c('fastverse','targets','wbstats','rvest','countrycode','sf','s2','osmclass','DBI','duckdb','geohashTools','readxl','janitor','qs2','geojsonsf','httr','jsonlite','dggridR','terra','exactextractr','rnaturalearth','collapse','data.table'); missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]; if (length(missing)) stop('Missing R packages: ', paste(missing, collapse = ', ')); cat('R packages OK\n')"
+```
+
+```sh
+Rscript -e "con <- DBI::dbConnect(duckdb::duckdb()); DBI::dbExecute(con, 'INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;'); DBI::dbDisconnect(con, shutdown = TRUE); cat('DuckDB extensions OK\n')"
+```
+
+```sh
+test -f "data/GEM/Global-Integrated-Power-March-2026.xlsx"
+test -f "data/GEM/Global-Cement-and-Concrete-Tracker_July-2025.xlsx"
+test -f "data/GEM/Global-Iron-Ore-Mines-Tracker-August-2025-V1.xlsx"
+test -f "data/GEM/Plant-level-data-Global-Chemicals-Inventory-November-2025-V1.xlsx"
+test -f "data/GEM/Plant-level-data-Global-Iron-and-Steel-Tracker-December-2025-V1.xlsx"
+test -f "data/OZM/Open Zone Map raw data - The Adrianople Group - 2023.csv"
+test -f "data/SAM/TZ-SAM_Solar Asset Mapper - Q4 2025/2025-Q4_analysis_polygons.csv"
+test -f "data/ITU/ITU_Nov_2024/ITU_node_ties.geojson"
+```
+
+If any `test -f` command exits non-zero, copy the missing manual input before running the full pipeline.
+
+## 12. Common Failure Points
+
+- Running `Rscript run_pipeline.R` outside the repository root.
+- Missing manual files in `data/GEM`, `data/OZM`, `data/SAM`, or `data/ITU`.
+- Broken or missing PROJ/GDAL/GEOS system installation.
+- DuckDB cannot install or load `spatial` / `httpfs`.
+- Insufficient memory or disk during Overture transportation.
+- Expired OpenCellID token.
+- Network blocks to Geofabrik, Overture S3, Zenodo, ArcGIS FeatureServer, or Wikipedia.
+- Enabling AllThePlaces without creating `venv/`.
+- Enabling Foursquare on a server where the public S3 paths or documentation page are unreachable.
+
