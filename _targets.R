@@ -6,7 +6,7 @@ REQUIRED_PACKAGES <- c(
   "fastverse", "targets", "wbstats", "rvest", "countrycode", "sf", "s2", "osmclass",
   "DBI", "duckdb", "geohashTools", "readxl", "janitor", "qs2", "geojsonsf", "httr",
   "jsonlite", "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse",
-  "data.table", "R.utils"
+  "data.table", "R.utils", "arrow"
 )
 
 missing_packages <- REQUIRED_PACKAGES[!vapply(REQUIRED_PACKAGES, requireNamespace, TRUE, quietly = TRUE)]
@@ -41,7 +41,8 @@ PIPELINE_FLAGS <- list(
 tar_option_set(
   packages = c("wbstats", "rvest", "countrycode", "sf", "s2", "osmclass", "DBI", "duckdb",
                "geohashTools", "readxl", "janitor", "qs2", "geojsonsf", "httr", "jsonlite",
-               "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse", "data.table"),
+               "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse", "data.table",
+               "arrow"),
   trust_timestamps = TRUE,
   format = "rds"
 )
@@ -265,7 +266,19 @@ points_combination_targets <- if (POINTS_COMBINATION) list(
   ),
   tar_target(
     name = points_deduplicated,
-    command = deduplicate_points(qs2::qs_read(points_combined)),
+    command = {
+      pts <- arrow::open_dataset(dirname(points_combined[1])) |>
+        dplyr::collect() |> collapse::qDT()
+      # Re-factorise low-cardinality columns once, after concatenation, to
+      # mirror the factor-harmonised output the previous in-memory rowbind
+      # produced.
+      fct_cols <- c("source", "main_cat", "main_tag", "main_tag_value",
+                    "variable", "source_orig")
+      for (c in intersect(fct_cols, names(pts))) {
+        pts[, (c) := collapse::qF(get(c))]
+      }
+      deduplicate_points(pts)
+    },
     format = "file"
   )
 ) else list()

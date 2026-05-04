@@ -34,68 +34,109 @@ classify_overture_foursquares <- function(source) {
 }
 
 
-combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE, fsq = TRUE) {
-  
-  
+# Canonical column order for every per-source parquet file. Keeping a stable
+# schema across files lets `arrow::open_dataset()` treat the directory as one
+# logical table without any in-memory rowbind.
+POINTS_SCHEMA_COLS <- c(
+  "source", "id", "lon", "lat", "ref", "name", "address", "source_orig",
+  "main_cat", "main_tag", "main_tag_value", "alt_cats", "alt_tags_values",
+  "other_tags_values", "variable", "value"
+)
+
+# Write a single source's prepared table to its own parquet file and free it.
+# Strings (not factors) are written so per-source files share a stable schema
+# and we sidestep cross-source factor recoding in memory. Low-cardinality
+# columns can be re-factorised once when the dataset is read back.
+write_source_parquet <- function(prep, source_name, out_dir) {
+  prep <- qDT(prep)
+  prep[, source := source_name]
+  fct <- vapply(prep, is.factor, logical(1L))
+  if (any(fct)) {
+    fct_names <- names(prep)[fct]
+    prep[, (fct_names) := lapply(.SD, as.character), .SDcols = fct_names]
+  }
+  missing <- setdiff(POINTS_SCHEMA_COLS, names(prep))
+  if (length(missing)) {
+    stop(sprintf("write_source_parquet(%s): missing columns: %s",
+                 source_name, paste(missing, collapse = ", ")))
+  }
+  prep <- get_vars(prep, POINTS_SCHEMA_COLS)
+  arrow::write_parquet(
+    prep,
+    file.path(out_dir, paste0(source_name, ".parquet")),
+    compression = "zstd",
+    compression_level = 3L
+  )
+  invisible(NULL)
+}
+
+
+combine_points <- function(out = "data/combined/points_combined", atp = TRUE, fsq = TRUE) {
+
+  # Fresh output directory: stale per-source parquet files from a previous run
+  # would silently end up in the combined dataset otherwise.
+  if (dir.exists(out)) unlink(list.files(out, pattern = "\\.parquet$", full.names = TRUE))
+  dir.create(out, recursive = TRUE, showWarnings = FALSE)
+
   #
   ### Open Street Map ------------------------------------------------------------
   #
-  
+
   OSM_points <- qs2::qs_read("data/OSM/points.qs")
-  
+
   OSM_points_prep <- OSM_points |> fcompute(
     id = paste0("OSM_node_", osm_id),
     lon = lon,
     lat = lat,
     ref = ref,
     name = name,
-    address = factor(NA_character_),
-    # description = NA_character_,
-    source_orig = factor(NA_character_),
+    address = NA_character_,
+    source_orig = NA_character_,
     main_cat = main_cat,
     main_tag = main_tag,
     main_tag_value = main_tag_value,
     alt_cats = alt_cats,
     alt_tags_values = alt_tags_values,
-    other_tags_values = factor(NA_character_),
-    variable = factor(NA_character_),
+    other_tags_values = NA_character_,
+    variable = NA_character_,
     value = NA_real_
   ) |> collap(~ id)
-  
+
   if(any_duplicated(OSM_points_prep$id)) stop("OSM: Duplicated ids")
   rm(OSM_points); gc()
-  
+  write_source_parquet(OSM_points_prep, "OSM_points", out); rm(OSM_points_prep); gc()
+
   OSM_multipolygons <- qs2::qs_read("data/OSM/multipolygons.qs")
-  
+
   OSM_multipolygons_prep <- OSM_multipolygons |> fcompute(
     id = iif(is.na(osm_id), paste0("OSM_way_", osm_way_id), paste0("OSM_node_", osm_id)),
     lon = lon,
     lat = lat,
     ref = ref,
     name = name,
-    address = factor(NA_character_),
-    # description = NA_character_,
-    source_orig = factor(NA_character_),
+    address = NA_character_,
+    source_orig = NA_character_,
     main_cat = main_cat,
     main_tag = main_tag,
     main_tag_value = main_tag_value,
     alt_cats = alt_cats,
     alt_tags_values = alt_tags_values,
-    other_tags_values = factor(NA_character_),
-    variable = factor("area_m2"),
+    other_tags_values = NA_character_,
+    variable = "area_m2",
     value = unattrib(area)
   ) |> collap(~ id)
-  
+
   if(any_duplicated(OSM_multipolygons_prep$id)) stop("OSM: Duplicated ids")
   rm(OSM_multipolygons); gc()
-  
+  write_source_parquet(OSM_multipolygons_prep, "OSM_multipolygons", out); rm(OSM_multipolygons_prep); gc()
+
   #
   ### Overture Places ------------------------------------------------------------
   #
-  
+
   overture_places <- qs2::qs_read("data/overture/places.qs") |> fsubset(!is.na(category))
   overture_cat <- classify_overture_foursquares("overture") |> rowbind(idcol = "main_cat")
-  
+
   OVP_prep <- overture_places |> fcompute(
     id = paste0("OVP_", id),
     lon = lon,
@@ -103,7 +144,6 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     ref = NA_character_,
     name = name,
     address = paste(address, locality, postcode, country, sep = "; "),
-    # description = NA_character_,
     source_orig = source,
     main_cat = overture_cat$main_cat[ckmatch(category, overture_cat$category)],
     main_tag = "category",
@@ -115,13 +155,11 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     value = confidence
   )
   rm(overture_places, overture_cat); gc()
-  
-  settfmv(OVP_prep, char_vars(OVP_prep, "names")[-1], qF); gc()
-  
+
   if(any_duplicated(OVP_prep$id)) stop("OVP: Duplicated ids")
-  
-  # OVP_prep |> st_as_sf(coords = c("lon", "lat"), crs = 4326) |> mapview::mapview()
-  
+
+  write_source_parquet(OVP_prep, "OVP", out); rm(OVP_prep); gc()
+
   #
   ### Foursquares Places ------------------------------------------------------------
   #
@@ -138,7 +176,6 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
       ref = NA_character_,
       name = name,
       address = paste(address, locality, postcode, country, sep = "; "),
-      # description = NA_character_,
       source_orig = NA_character_, # placemaker_url,
       main_cat = foursquares_cat$main_cat[ind],
       main_tag = "category",
@@ -151,13 +188,11 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     )
     rm(foursquares_places, foursquares_cat, ind); gc()
 
-    settfmv(FSP_prep, char_vars(FSP_prep, "names")[-1], qF); gc()
-
     if(any_duplicated(FSP_prep$id)) stop("FSP: Duplicated ids")
 
-    # FSP_prep |> st_as_sf(coords = c("lon", "lat"), crs = 4326) |> mapview::mapview()
+    write_source_parquet(FSP_prep, "FSP", out); rm(FSP_prep); gc()
   }
-  
+
   #
   ### Alltheplaces ------------------------------------------------------------
   #
@@ -166,15 +201,10 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     ATP <- fread("data/alltheplaces/alltheplaces.csv") |> janitor::clean_names()
 
     # Deduplication
-    # ATP |> fselect(longitude, latitude, amenity, shop, brand, brand_wikidata, spider) |> fduplicated() |> qtable()
     ATP %<>% fgroup_by(longitude, latitude, ref, brand_wikidata) %>% fmode()
-    # ATP |> fcompute(am = pfirst(amenity, shop), keep = .c(longitude, latitude, brand_wikidata, ref)) |> fduplicated() |> qtable()
 
     ATP$other_tags = ""
     ATP_class <- osm_classify(ATP, osm_point_polygon_class_det)
-    # qtable(ATP_class$classified)
-    # fcount(ATP_class, main_cat, main_tag, main_tag_value) |> roworder(-N)
-    # fndistinct(ATP_class)
     gc()
 
     ATP_prep <- ATP |> fcompute(
@@ -186,7 +216,6 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
       ref = ref,
       name = name,
       address = paste(addr_postcode, addr_city, addr_state, addr_country, sep = ", "),
-      # description = NA_character_,
       source_orig = source,
       main_cat = ATP_class$main_cat,
       main_tag = ATP_class$main_tag,
@@ -202,29 +231,22 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     rm(ATP, ATP_class); gc()
 
     ATP_prep %<>% fgroup_by(id) %>% fmode()
-    # ATP_prep |> st_as_sf(coords = c("lon", "lat"), crs = 4326) |> mapview::mapview()
+    write_source_parquet(ATP_prep, "ATP", out); rm(ATP_prep); gc()
   }
-  
-  # 
+
+  #
   ### Opencellid Cell Towers -------------------------------------------------
   #
-  
+
   OCID <- fread("data/opencellid/cell_towers.csv.gz") %>% get_vars(varying(.))
-  # descr(OCID)
-  # Deduplication 
+  # Deduplication
   OCID %<>% collap(~ radio + lon + lat, fmode, w = ~ samples, wFUN = fmax)
-  
-  # Scrape table of mobile country codes
-  # The table follows the 'National operators' span with id 'National_operators'
-  # We use xpath to navigate from this span to the following table
-  # mcc_table <- rvest::read_html("https://en.wikipedia.org/wiki/Mobile_country_code") |>
-  #   rvest::html_node(xpath = "//h2[span[@id='National_operators']]/following-sibling::table[1]") |>
-  #   rvest::html_table(fill = TRUE) |>
-  #   janitor::clean_names()
-  mcc_table <- rvest::read_html("https://en.wikipedia.org/wiki/Mobile_country_code") |> 
-      rvest::html_table(fill = TRUE) |> 
+
+  # Scrape table of mobile country codes from Wikipedia.
+  mcc_table <- rvest::read_html("https://en.wikipedia.org/wiki/Mobile_country_code") |>
+      rvest::html_table(fill = TRUE) |>
       extract2(2) |> janitor::clean_names()
-  
+
   OCID_prep <- OCID |> fcompute(
     id = paste("OCID", radio, geohashTools::gh_encode(lat, lon, precision = 15), sep = "_"),
     lon = lon,
@@ -232,37 +254,36 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     ref = as.double(cell),
     name = NA_character_,
     address = mcc_table$country[ckmatch(mcc, mcc_table$mobile_country_code)],
-    # description = NA_character_,
     source_orig = NA_character_,
     main_cat = "communications_network",
     main_tag = "radio",
     main_tag_value = radio,
-    alt_cats = NA_character_, 
+    alt_cats = NA_character_,
     alt_tags_values = NA_character_,
-    other_tags_values = paste0('mobile_country_code:"', mcc, '", mobile_network_code:"', net, '", samples:"', samples, 
-                             '", created:"', as.POSIXct(created, origin="1970-01-01", tz="UTC"), 
+    other_tags_values = paste0('mobile_country_code:"', mcc, '", mobile_network_code:"', net, '", samples:"', samples,
+                             '", created:"', as.POSIXct(created, origin="1970-01-01", tz="UTC"),
                              '", updated:"', as.POSIXct(updated, origin="1970-01-01", tz="UTC"), '"'),
     variable = "accuracy_in_m",
     value = range
   )
-  
+
   if(any_duplicated(OCID_prep$id)) stop("OCID: Duplicated ids")
-  
+
   rm(OCID, mcc_table); gc()
-  
+  write_source_parquet(OCID_prep, "OCID", out); rm(OCID_prep); gc()
+
   #
   ### Global Integrated Power Tracker -----------------------------------------------
   #
-  
+
   GIP <- load_GIP()
-  
+
   # Deduplication
-  # GIP |> fsubset(fduplicated(geohashTools::gh_encode(latitude, longitude, precision = 15), all = TRUE))
-  GIP %<>% fgroup_by(gem_location_id, status) %>% collapg(w = capacity_mw) %>% 
+  GIP %<>% fgroup_by(gem_location_id, status) %>% collapg(w = capacity_mw) %>%
     fsubset(status %in% c("operating", "construction", "inactive", "mothballed"))
-  
+
   GIP_prep <- GIP |> fcompute(
-    id = paste("GIP", gem_location_id, status, sep = "_"), 
+    id = paste("GIP", gem_location_id, status, sep = "_"),
     lon = longitude,
     lat = latitude,
     ref = gem_unit_phase_id,
@@ -273,41 +294,42 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     main_cat = "power_plant_large",
     main_tag = "plant_type",
     main_tag_value = type,
-    alt_cats = NA_character_, 
+    alt_cats = NA_character_,
     alt_tags_values = NA_character_,
-    other_tags_values = paste0('status:"', status, '", start_year:"', start_year, '", retired_year:"', retired_year, '", technology:"', technology, 
+    other_tags_values = paste0('status:"', status, '", start_year:"', start_year, '", retired_year:"', retired_year, '", technology:"', technology,
                                '", fuel:"', fuel_combustion_only, '", owner:"', owner_s, '", parent:"', parent_s, '", location_accuracy:"', location_accuracy, '"'),
     variable = "capacity_mw",
     value = capacity_mw
   )
-  
+
   if(any_duplicated(GIP_prep$id)) stop("GIP: Duplicated ids")
-  
+
   rm(GIP); gc()
+  write_source_parquet(GIP_prep, "GIP", out); rm(GIP_prep); gc()
 
   #
   ### Global Cement and Concrete Tracker --------------------------------------------
   #
-  
+
   GEM_cement <- load_GEM_cement()
   coords_cem <- strsplit(GEM_cement$coordinates, ",")
   lat_cem <- as.numeric(trimws(vapply(coords_cem, `[`, character(1), 1L)))
   lon_cem <- as.numeric(trimws(vapply(coords_cem, `[`, character(1), 2L)))
   GEM_cement$latitude <- lat_cem
   GEM_cement$longitude <- lon_cem
-  
+
   CEMENT_prep <- GEM_cement |> fcompute(
-    id = paste("GEMCEM", gem_plant_id, sep = "_"), 
+    id = paste("GEMCEM", gem_plant_id, sep = "_"),
     lon = longitude,
     lat = latitude,
     ref = gem_plant_id,
     name = gem_asset_name_english,
     address = paste(municipality, subnational_unit, country_area, sep = ", "),
     source_orig = gem_wiki_page,
-    main_cat = "industrial", 
-    main_tag = "sector", 
+    main_cat = "industrial",
+    main_tag = "sector",
     main_tag_value = "cement",
-    alt_cats = NA_character_, 
+    alt_cats = NA_character_,
     alt_tags_values = NA_character_,
     other_tags_values = paste0('operating_status:"', operating_status, '", start_date:"', start_date, '", owner:"', owner_name_english,
                                '", plant_type:"', plant_type, '", production_type:"', production_type,
@@ -315,34 +337,35 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     variable = "cement_capacity_millions_metric_tonnes_per_annum",
     value = cement_capacity_millions_metric_tonnes_per_annum
   )
-  
+
   if(any_duplicated(CEMENT_prep$id)) stop("GEM Cement: Duplicated ids")
-  
+
   rm(GEM_cement); gc()
-  
+  write_source_parquet(CEMENT_prep, "GEMCEM", out); rm(CEMENT_prep); gc()
+
   #
   ### Global Iron Ore Mines Tracker -------------------------------------------------
   #
-  
+
   GEM_iron_ore <- load_GEM_iron_ore()
   coords_iron <- strsplit(GEM_iron_ore$coordinates, ",")
   lat_iron <- as.numeric(trimws(vapply(coords_iron, `[`, character(1), 1L)))
   lon_iron <- as.numeric(trimws(vapply(coords_iron, `[`, character(1), 2L)))
   GEM_iron_ore$latitude <- lat_iron
   GEM_iron_ore$longitude <- lon_iron
-  
+
   IRON_prep <- GEM_iron_ore |> fcompute(
-    id = paste("GEMIRON", gem_asset_id, sep = "_"), 
+    id = paste("GEMIRON", gem_asset_id, sep = "_"),
     lon = longitude,
     lat = latitude,
     ref = gem_asset_id,
     name = asset_name_english,
     address = paste(municipality, subnational_unit, country_area, sep = ", "),
     source_orig = gem_wiki_page_url,
-    main_cat = "mining", 
-    main_tag = "commodity", 
+    main_cat = "mining",
+    main_tag = "commodity",
     main_tag_value = "iron_ore",
-    alt_cats = NA_character_, 
+    alt_cats = NA_character_,
     alt_tags_values = NA_character_,
     other_tags_values = paste0('operating_status:"', operating_status, '", start_date:"', start_date, '", stop_date:"', stop_date,
                                '", design_capacity_ttpa:"', design_capacity_ttpa,
@@ -350,86 +373,89 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     variable = "design_capacity_ttpa",
     value = suppressWarnings(as.numeric(design_capacity_ttpa))
   )
-  
+
   if(any_duplicated(IRON_prep$id)) stop("GEM Iron Ore: Duplicated ids")
-  
+
   rm(GEM_iron_ore); gc()
-  
+  write_source_parquet(IRON_prep, "GEMIRON", out); rm(IRON_prep); gc()
+
   #
   ### Global Chemicals Inventory ----------------------------------------------------
   #
-  
+
   GEM_chem <- load_GEM_chemicals()
   coords_chem <- strsplit(GEM_chem$coordinates, ",")
   lat_chem <- as.numeric(trimws(vapply(coords_chem, `[`, character(1), 1L)))
   lon_chem <- as.numeric(trimws(vapply(coords_chem, `[`, character(1), 2L)))
   GEM_chem$latitude <- lat_chem
   GEM_chem$longitude <- lon_chem
-  
+
   CHEM_prep <- GEM_chem |> fcompute(
-    id = paste("GEMCHEM", gem_plant_id, sep = "_"), 
+    id = paste("GEMCHEM", gem_plant_id, sep = "_"),
     lon = longitude,
     lat = latitude,
     ref = gem_plant_id,
     name = plant_name_english,
     address = paste(municipality, subnational_unit, country_area, sep = ", "),
     source_orig = gem_wiki_page,
-    main_cat = "industrial", 
-    main_tag = "sector", 
+    main_cat = "industrial",
+    main_tag = "sector",
     main_tag_value = "chemicals",
-    alt_cats = NA_character_, 
+    alt_cats = NA_character_,
     alt_tags_values = NA_character_,
     other_tags_values = paste0('primary_products:"', primary_products, '", secondary_products:"', secondary_products,
                                '", feedstock:"', feedstock, '", feedstock_accuracy:"', feedstock_accuracy, '"'),
     variable = NA_character_,
     value = NA_real_
   )
-  
+
   if(any_duplicated(CHEM_prep$id)) stop("GEM Chemicals: Duplicated ids")
-  
+
   rm(GEM_chem); gc()
-  
+  write_source_parquet(CHEM_prep, "GEMCHEM", out); rm(CHEM_prep); gc()
+
   #
   ### Global Iron and Steel Tracker -------------------------------------------------
   #
-  
+
   GEM_steel <- load_GEM_steel()
   coords_steel <- strsplit(GEM_steel$coordinates, ",")
   lat_steel <- as.numeric(trimws(vapply(coords_steel, `[`, character(1), 1L)))
   lon_steel <- as.numeric(trimws(vapply(coords_steel, `[`, character(1), 2L)))
   GEM_steel$latitude <- lat_steel
   GEM_steel$longitude <- lon_steel
-  
+
   STEEL_prep <- GEM_steel |> fcompute(
     id = paste("GEMSTEEL", plant_id,
-               geohashTools::gh_encode(latitude, longitude, precision = 15), sep = "_"), 
+               geohashTools::gh_encode(latitude, longitude, precision = 15), sep = "_"),
     lon = longitude,
     lat = latitude,
     ref = plant_id,
     name = plant_name_english,
     address = paste(municipality, subnational_unit_province_state, country_area, sep = ", "),
     source_orig = gem_wiki_page,
-    main_cat = "industrial", 
-    main_tag = "sector", 
+    main_cat = "industrial",
+    main_tag = "sector",
     main_tag_value = "steel",
-    alt_cats = NA_character_, 
+    alt_cats = NA_character_,
     alt_tags_values = NA_character_,
     other_tags_values = paste0('status:"', status, '", start_date:"', start_date,
                                '", nominal_crude_steel_capacity_ttpa:"', nominal_crude_steel_capacity_ttpa, '"'),
     variable = "nominal_crude_steel_capacity_ttpa",
     value = suppressWarnings(as.numeric(nominal_crude_steel_capacity_ttpa))
   ) |> fslice(id, how = "max", order.by = replace_na(value))
-  
+
   if(any_duplicated(STEEL_prep$id)) stop("GEM Steel: Duplicated ids")
-  
+
   rm(GEM_steel); gc()
-  
+  write_source_parquet(STEEL_prep, "GEMSTEEL", out); rm(STEEL_prep); gc()
+
   #
   ### TZ-SAM Solar Asset Mapper -----------------------------------------------------
   #
-  
+
   SAM <- load_solar_assets()
-  
+
   SAM_prep <- SAM |> fcompute(
     id = paste("SAM", cluster_id,
                geohashTools::gh_encode(latitude, longitude, precision = 15), sep = "_"),
@@ -448,15 +474,16 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     variable = "capacity_mw",
     value = capacity_mw
   )
-  
+
   if (any_duplicated(SAM_prep$id)) stop("SAM: Duplicated ids")
-  
+
   rm(SAM); gc()
-  
+  write_source_parquet(SAM_prep, "SAM", out); rm(SAM_prep); gc()
+
   #
   ### Oil and Gas Infrastructure Mapping (OGIM) -------------------------------------
   #
-  
+
   OGIM_list <- load_OGIM()
   OGIM_flat <- Map(function(d, nm) { d$ogim_layer <- nm; d }, OGIM_list, names(OGIM_list)) |>
     rowbind(fill = TRUE)
@@ -515,17 +542,18 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     variable = "liq_capacity_bpd",
     value = as.double(liq_capacity_bpd)
   )
-  
+
   if (any_duplicated(OGIM_prep$id)) stop("OGIM: Duplicated ids")
-  
+
   rm(OGIM_list, OGIM_flat); gc()
-  
+  write_source_parquet(OGIM_prep, "OGIM", out); rm(OGIM_prep); gc()
+
   #
   ### ITU nodes (telecom) -----------------------------------------------------------
   #
-  
+
   ITU <- load_ITU_nodes()
-  
+
   ITU_prep <- ITU |> fcompute(
     id = paste("ITU", id, geohashTools::gh_encode(lat, lon, precision = 15), sep = "_"),
     lon = lon,
@@ -546,17 +574,18 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     variable = NA_character_,
     value = NA_real_
   ) |> collap(~ id)
-  
+
   if (any_duplicated(ITU_prep$id)) stop("ITU: Duplicated ids")
-  
+
   rm(ITU); gc()
-  
+  write_source_parquet(ITU_prep, "ITU", out); rm(ITU_prep); gc()
+
   #
   ### PortWatch (IMF) ---------------------------------------------------------------
   #
-  
+
   PW <- load_portswatch()
-  
+
   PW_prep <- PW |> fcompute(
     id = paste0("PW_", portid),
     lon = lon,
@@ -581,17 +610,18 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     variable = "vessel_count_total",
     value = as.double(vessel_count_total)
   )
-  
+
   if (any_duplicated(PW_prep$id)) stop("PW: Duplicated ids")
-  
+
   rm(PW); gc()
-  
+  write_source_parquet(PW_prep, "PW", out); rm(PW_prep); gc()
+
   #
   ### Open Zone Map ---------------------------------------------------------------
   #
-  
+
   OZM <- load_OZM()
-  
+
   OZM_prep <- OZM |> fcompute(
     id = paste0("OZM_", id),
     lon = longitude,
@@ -599,62 +629,31 @@ combine_points <- function(out = "data/combined/points_combined.qs", atp = TRUE,
     ref = NA_character_,
     name = title,
     address = country,
-    # description = NA_character_,
     source_orig = note,
-    main_cat = "SEZ", 
-    main_tag = "zone_type", 
+    main_cat = "SEZ",
+    main_tag = "zone_type",
     main_tag_value = zone_type,
-    alt_cats = NA_character_, 
+    alt_cats = NA_character_,
     alt_tags_values = NA_character_,
-    other_tags_values = paste0('status:"', status, '", zone_specialization:"', zone_specialization, 
+    other_tags_values = paste0('status:"', status, '", zone_specialization:"', zone_specialization,
                              '", management_type:"', management_type, '", management_company:"', management_company,
                              '", sez_framework:"', sez_framework, '", size_class:"', size_class, '", url:"', url,
-                             '", created:"', created, '", modified:"', modified,  
+                             '", created:"', created, '", modified:"', modified,
                              '", nearest_airport:"', nearest_airport, '", nearest_airport_distance_km:"', nearest_airport_distance_km,
                              '", nearest_port:"', nearest_port, '", nearest_port_distance_km:"', nearest_port_distance_km,
-                             '", capital_city:"', capital_city, '", capital_city_distance_km:"', capital_city_distance_km, 
+                             '", capital_city:"', capital_city, '", capital_city_distance_km:"', capital_city_distance_km,
                              '", populous_city:"', populous_city, '", populous_city_distance_km:"', populous_city_distance_km, '"'),
     variable = "size_hectares",
     value = as.numeric(size_hectares)
-  ) 
-  
-  if (any_duplicated(OZM_prep$id)) stop("OZM: Duplicated ids")
-  
-  rm(OZM); gc()
+  )
 
-  #
-  ### Combine all datasets -----------------------------------------------------------
-  #
-  
-  fsq_list <- if (fsq) list(FSP = FSP_prep) else list()
-  atp_list <- if (atp) list(ATP = ATP_prep) else list()
-  points_combined <- do.call(rowbind, c(
-    list(
-      OSM_points = OSM_points_prep,
-      OSM_multipolygons = OSM_multipolygons_prep,
-      OVP = OVP_prep
-    ),
-    fsq_list,
-    atp_list,
-    list(
-      OCID = OCID_prep,
-      GIP = GIP_prep,
-      GEMCEM = CEMENT_prep,
-      GEMIRON = IRON_prep,
-      GEMCHEM = CHEM_prep,
-      GEMSTEEL = STEEL_prep,
-      SAM = SAM_prep,
-      OGIM = OGIM_prep,
-      ITU = ITU_prep,
-      PW = PW_prep,
-      OZM = OZM_prep
-    ),
-    list(idcol = "source")
-  ))
-  
-  dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)
-  qs2::qs_save(points_combined, out)
-  out
+  if (any_duplicated(OZM_prep$id)) stop("OZM: Duplicated ids")
+
+  rm(OZM); gc()
+  write_source_parquet(OZM_prep, "OZM", out); rm(OZM_prep); gc()
+
+  # Return the per-source parquet file paths so targets can track each one.
+  list.files(out, pattern = "\\.parquet$", full.names = TRUE)
 }
 
 
