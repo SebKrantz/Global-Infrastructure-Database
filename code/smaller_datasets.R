@@ -5,8 +5,10 @@ fetch_OCID <- function() {
   dest <- "data/opencellid/cell_towers.csv.gz"
   dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
   if (isTRUE(CUES_MODE == "never") && file.exists(dest)) return(dest)
-  download.file("https://opencellid.org/ocid/downloads?token=pk.00ef6e91c8e916e61168597788c6e6e8&type=full&file=cell_towers.csv.gz",
-                destfile = dest, method = "curl")
+  download.file(
+    "https://opencellid.org/ocid/downloads?token=pk.00ef6e91c8e916e61168597788c6e6e8&type=full&file=cell_towers.csv.gz",
+    destfile = dest, mode = "wb", method = "libcurl"
+  )
 
   dest
 }
@@ -77,7 +79,7 @@ fetch_portswatch <- function() {
       geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=0"),
       geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=1000"),
       geojsonsf::geojson_sf("https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=2000")
-    ) %>% st_drop_geometry()
+    ) %>% sf::st_drop_geometry()
     fwrite(imf_pw, dest)
 
   dest
@@ -113,7 +115,7 @@ fetch_EGM_grid <- function() {
   oldopt <- options(timeout = max(10000, getOption("timeout")))
   on.exit(options(oldopt), add = TRUE)
 
-  download.file(url, destfile = dest, mode = "wb", method = "curl")
+  download.file(url, destfile = dest, mode = "wb", method = "libcurl")
 
   dest
 }
@@ -140,7 +142,7 @@ fetch_OGIM <- function() {
   oldopt <- options(timeout = max(10000, getOption("timeout")))
   on.exit(options(oldopt), add = TRUE)
 
-  download.file(url, destfile = dest, mode = "wb", method = "curl")
+  download.file(url, destfile = dest, mode = "wb", method = "libcurl")
 
   dest
 }
@@ -188,7 +190,7 @@ load_OGIM <- function() {
         st_centroid() %>% tfm(st_coordinates(.) %>% qDF() %>% set_names(c("longitude", "latitude")))
     }
     
-    st_drop_geometry(d) |> get_vars(varying)
+    sf::st_drop_geometry(d) |> get_vars(varying)
     
   }, simplify = FALSE)
   
@@ -203,7 +205,7 @@ load_ITU_nodes <- function() {
   geojsonsf::geojson_sf("data/ITU/ITU_Nov_2024/ITU_node_ties.geojson") %>%
     fselect(-lon_, -lat_) %>%
     tfm(st_coordinates(.) %>% qDF() %>% set_names(c("lon", "lat"))) %>% 
-    st_drop_geometry()
+    sf::st_drop_geometry()
     
 }
 
