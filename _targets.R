@@ -6,7 +6,7 @@ REQUIRED_PACKAGES <- c(
   "fastverse", "targets", "wbstats", "rvest", "countrycode", "sf", "s2", "osmclass",
   "DBI", "duckdb", "geohashTools", "readxl", "janitor", "qs2", "geojsonsf", "httr",
   "jsonlite", "dggridR", "terra", "exactextractr", "rnaturalearth", "collapse",
-  "data.table"
+  "data.table", "R.utils"
 )
 
 missing_packages <- REQUIRED_PACKAGES[!vapply(REQUIRED_PACKAGES, requireNamespace, TRUE, quietly = TRUE)]
@@ -25,7 +25,7 @@ fastverse_conflicts()
 # re-downloading files that already exist inside fetcher functions.
 # Set to "thorough" to re-run all targets and re-fetch all data.
 # Set ot "always" to always redownload
-CUES_MODE <- "thorough"
+CUES_MODE <- "never"
 PIPELINE_FLAGS <- list(
   point_fetching = TRUE,
   lines_fetching = TRUE,
