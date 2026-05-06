@@ -17,7 +17,7 @@ if (length(missing_packages)) {
 
 # Load packages required to define the pipeline:
 library(fastverse)
-library(targets)
+fastverse_extend(sf, targets)
 # targets::tar_destroy(destroy = 'all') # For fresh starts
 fastverse_conflicts()
 

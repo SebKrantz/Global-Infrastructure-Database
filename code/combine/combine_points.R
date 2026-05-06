@@ -487,7 +487,7 @@ combine_points <- function(out = "data/combined/points_combined", atp = TRUE, fs
   OGIM_list <- load_OGIM()
   OGIM_flat <- Map(function(d, nm) { d$ogim_layer <- nm; d }, OGIM_list, names(OGIM_list)) |>
     rowbind(fill = TRUE)
-  OGIM_flat$name_display <- fcoalesce(OGIM_flat$fac_name, OGIM_flat$name)
+  OGIM_flat$name_display <- OGIM_flat$name_display <- OGIM_flat$fac_name # fcoalesce(OGIM_flat$fac_name, OGIM_flat$name)
   OGIM_flat %<>% fsubset(!is.na(latitude) & !is.na(longitude))
 
   # Per-layer category mapping (extraction → mining, processing → industrial,
